@@ -1,3 +1,3 @@
-__all__ = ["HouseHoldClass"]
+__all__ = ["classes"]
 
-from . import HouseHoldClass
+from . import classes
