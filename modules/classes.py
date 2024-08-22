@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import re
 
 green = "#15ce27"
 red = "#ff0000"
@@ -36,6 +37,7 @@ class HouseHold():
 
         def on_name_entry_confirm(hh_name_entry):
             self.HouseHoldName = hh_name_entry.get()
+            HouseHoldMember.memb_name_entry_widget.mem
             print("the new household name is " + self.HouseHoldName)
 
         def create_lambda(hh_name_entry):
@@ -74,13 +76,23 @@ class HouseHoldMember():
         self.ExpenseTotal = ExpenseTotal
         self.MembShare = MembShare
 
-    # general functions for this class
-    def limit_characters(entry, limit):
-        value = entry.get()
-        if len(value) > limit:
-            entry.set(value[:limit])
-
     def memb_name_entry_widget(self, master_frame):
+
+        # general functions for this class
+
+        def activate_entry(widget):
+            widget.configure(state="standard")
+        
+        def limit_characters(entry, limit):
+            value = entry.get()
+            if len(value) > limit:
+                entry.set(value[:limit])
+
+        def trace_add(string_var, char_limit):
+            string_var.trace_add("write", lambda *args: limit_characters(string_var, char_limit))
+
+        def create_lambda(on_entry_confirm, keybind):
+            return lambda event: on_entry_confirm(keybind)
 
         memb_container = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color=background)
         memb_container.pack()
@@ -96,20 +108,20 @@ class HouseHoldMember():
                             corner_radius=0,
                             border_width=0,
                             text_color="white",
-                            width=200)
+                            width=200,
+                            #state="disabled"
+                            )
         memb_name_entry.pack(padx=10)
 
-        character_limit = 10
-        memb_name_var.trace_add("write", lambda *args: self.limit_characters(memb_name_var, character_limit))
+        name_character_limit = 10
+        trace_add(memb_name_var, name_character_limit)
 
         def on_name_entry_confirm(memb_name_entry):
             self.MembName = memb_name_entry.get()
             print("the household member name is " + self.MembName)
 
-        def create_lambda(memb_name_entry):
-            return lambda event: on_name_entry_confirm(memb_name_entry)
-        
-        memb_name_entry.bind("<Return>", create_lambda(memb_name_entry))
+        create_lambda(on_name_entry_confirm, memb_name_entry)
+        memb_name_entry.bind("<Return>", create_lambda(on_name_entry_confirm, memb_name_entry))
 
         # Monthly net entry for household member
 
@@ -122,17 +134,39 @@ class HouseHoldMember():
                             corner_radius=0,
                             border_width=0,
                             text_color=green,
-                            width=150)
+                            width=150,
+                            #state="disabled"
+                            )
         mtly_net_entry.pack(padx=10)
 
         income_character_limit = 10
-        mtly_net_var.trace_add("write", lambda *args: self.limit_characters(mtly_net_var, income_character_limit))
+        trace_add(mtly_net_var, income_character_limit)
 
         def on_income_entry_confirm(mtly_net_entry):
             self.MtlyNet = mtly_net_entry.get()
+            format_income_entry(self.MtlyNet)
             print(str(self.MembName) + " monthly net income is " + str(self.MtlyNet))
-
-        def create_lambda(mtly_net_entry):
-            return lambda event: on_income_entry_confirm(mtly_net_entry)
         
-        mtly_net_entry.bind("<Return>", create_lambda(mtly_net_entry))
+        create_lambda(on_income_entry_confirm, mtly_net_entry)
+        mtly_net_entry.bind("<Return>", create_lambda(on_income_entry_confirm, mtly_net_entry))
+
+        def format_income_entry(value):
+            value = re.sub(r'[^\d]', '', value)
+            print(value)
+            try:
+                if len(value) > 2:
+                    value = value[:-2] + '.' + value[-2:]
+                    value = float(value)
+                else:
+                    value = '0.' + value.zfill(2)
+                    value = float(value)
+                    print(f"Float value: {value}")
+                formatted_value = f"{value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                self.MtlyNet = formatted_value
+                formatted_value_str = str(formatted_value)
+                mtly_net_entry.delete(0, 'end')
+                mtly_net_entry.insert(0, formatted_value_str)
+                return self.MtlyNet
+            except ValueError as e:
+                print(f"Error: {e}")
+                return ""
