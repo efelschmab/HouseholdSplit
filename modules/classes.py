@@ -92,6 +92,24 @@ class HouseHoldMember():
         def create_lambda(on_entry_confirm, keybind):
             return lambda event: on_entry_confirm(keybind)
 
+        def format_income_entry(value):
+            value = re.sub(r'[^\d]', '', value)
+            print(value)
+            try:
+                if len(value) > 2:
+                    value = value[:-2] + '.' + value[-2:]
+                    value = float(value)
+                else:
+                    value = '0.' + value.zfill(2)
+                    value = float(value)
+                    print(f"Float value: {value}")
+                formatted_value = f"{value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                print(formatted_value)
+                return formatted_value
+            except ValueError as e:
+                print(f"Error: {e}")
+                return ""
+
         """Name entry for household member"""
         memb_container = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color=background)
         memb_container.pack()
@@ -141,36 +159,14 @@ class HouseHoldMember():
         def on_income_entry_confirm(mtly_net_entry):
             self.MtlyNet = mtly_net_entry.get()
             self.income_list.append(int(self.MtlyNet))
-            format_income_entry(self.MtlyNet)
+            formatted_net = format_income_entry(self.MtlyNet)
+            mtly_net_entry.delete(0, 'end')
+            mtly_net_entry.insert(0, str(formatted_net))
             print(str(self.MembName) + " monthly net income is " + str(self.MtlyNet))
             if len(self.income_list) > 1:
                 self.total_net = self.income_list[0] + self.income_list[1]
-                self.total_net = str(self.total_net)
-                format_income_entry(self.total_net) # das funktioniert noch nicht so ganz, bei der format_income_entry funktion wird das entry field angepasst!
-                print("the combined total income is: " + self.total_net)
-            print(self.income_list)
-            print(self.total_net)
+                self.total_net = format_income_entry(str(self.total_net))
+                print("the combined total net income is: " + self.total_net)
         
         create_lambda(on_income_entry_confirm, mtly_net_entry)
         mtly_net_entry.bind("<Return>", create_lambda(on_income_entry_confirm, mtly_net_entry))
-
-        def format_income_entry(value):
-            value = re.sub(r'[^\d]', '', value)
-            print(value)
-            try:
-                if len(value) > 2:
-                    value = value[:-2] + '.' + value[-2:]
-                    value = float(value)
-                else:
-                    value = '0.' + value.zfill(2)
-                    value = float(value)
-                    print(f"Float value: {value}")
-                formatted_value = f"{value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-                self.MtlyNet = formatted_value
-                formatted_value_str = str(formatted_value)
-                mtly_net_entry.delete(0, 'end')
-                mtly_net_entry.insert(0, formatted_value_str)
-                return self.MtlyNet
-            except ValueError as e:
-                print(f"Error: {e}")
-                return ""

@@ -41,10 +41,4 @@ household_net_GUI_frame.grid(columnspan=2, padx=35, pady=10, column=0, row=4, st
 household_net_obj = classes.HouseHold()
 household_net_widget = household_obj.hh_net_widget(master_frame=household_net_GUI_frame)
 
-#if memb_obj_1.MtlyNet > 0 and memb_obj_2.MtlyNet > 0:
-#    """This function is for calculating the combined household net income"""
-#    household_net = memb_obj_1.MtlyNet + memb_obj_2.MtlyNet
-#    household_obj.HouseHoldShared = household_net
-#    print("the combined household net is: " + str(household_net))
-
 window.mainloop()
