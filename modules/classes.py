@@ -17,8 +17,7 @@ class HouseHold():
         text_var = ctk.StringVar()
         hh_name_entry = ctk.CTkEntry(master=master_frame,
                             textvariable=text_var,
-                            #fg_color="#181818",
-                            fg_color="red",
+                            fg_color=background,
                             placeholder_text="Enter Household Name",
                             font=("Roboto", 18),
                             corner_radius=0,
@@ -60,26 +59,25 @@ class HouseHold():
         household_net_label = ctk.CTkLabel(master=household_net_frame, fg_color=red, text="Household net / month")
         household_net_label.grid(sticky="w", row=0, column=0)
 
-        household_net_number = ctk.CTkLabel(master=household_net_frame, fg_color="white", text="12345", text_color=green)
-        household_net_number.grid(sticky="e", row=0, column=1)
-
-
-
+        self.household_net_number = ctk.CTkLabel(master=household_net_frame, fg_color="white", text="test", text_color=green)
+        self.household_net_number.grid(sticky="e", row=0, column=1)
 
 class HouseHoldMember():
 
-    def __init__(self, MembName=None, MtlyNet=None, NetPercent=None, ExpenseTotal=None, MembShare=None):
+    def __init__(self, MembName=None, MtlyNet=0, NetPercent=None, ExpenseTotal=None, MembShare=None):
 
         self.MembName = MembName
         self.MtlyNet = MtlyNet
         self.NetPercent = NetPercent
         self.ExpenseTotal = ExpenseTotal
         self.MembShare = MembShare
+        self.total_net = 0
+
+        self.income_list = []
 
     def memb_name_entry_widget(self, master_frame):
 
-        # general functions for this class
-
+        """General functions for this class"""
         def activate_entry(widget):
             widget.configure(state="standard")
         
@@ -94,10 +92,9 @@ class HouseHoldMember():
         def create_lambda(on_entry_confirm, keybind):
             return lambda event: on_entry_confirm(keybind)
 
+        """Name entry for household member"""
         memb_container = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color=background)
         memb_container.pack()
-
-        # Name entry for household member
 
         memb_name_var = ctk.StringVar()
         memb_name_entry = ctk.CTkEntry(master=memb_container,
@@ -123,8 +120,7 @@ class HouseHoldMember():
         create_lambda(on_name_entry_confirm, memb_name_entry)
         memb_name_entry.bind("<Return>", create_lambda(on_name_entry_confirm, memb_name_entry))
 
-        # Monthly net entry for household member
-
+        """Monthly net entry widget for household member"""
         mtly_net_var = ctk.StringVar()
         mtly_net_entry = ctk.CTkEntry(master=memb_container,
                             textvariable=mtly_net_var,
@@ -144,8 +140,16 @@ class HouseHoldMember():
 
         def on_income_entry_confirm(mtly_net_entry):
             self.MtlyNet = mtly_net_entry.get()
+            self.income_list.append(int(self.MtlyNet))
             format_income_entry(self.MtlyNet)
             print(str(self.MembName) + " monthly net income is " + str(self.MtlyNet))
+            if len(self.income_list) > 1:
+                self.total_net = self.income_list[0] + self.income_list[1]
+                self.total_net = str(self.total_net)
+                format_income_entry(self.total_net) # das funktioniert noch nicht so ganz, bei der format_income_entry funktion wird das entry field angepasst!
+                print("the combined total income is: " + self.total_net)
+            print(self.income_list)
+            print(self.total_net)
         
         create_lambda(on_income_entry_confirm, mtly_net_entry)
         mtly_net_entry.bind("<Return>", create_lambda(on_income_entry_confirm, mtly_net_entry))
