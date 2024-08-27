@@ -29,7 +29,7 @@ household_member_2_frame = ctk.CTkFrame(master=window, width=200, fg_color="gree
 household_member_2_frame.grid(columnspan=1, padx=10, pady=10, column=1, row=2)
 
 memb_obj_2 = classes.HouseHoldMember()
-memb_2_widget = memb_obj_1.memb_name_entry_widget(master_frame=household_member_2_frame)
+memb_2_widget = memb_obj_2.memb_name_entry_widget(master_frame=household_member_2_frame)
 
 divider_line_obj = classes.HouseHold()
 divider_line_widget = household_obj.divider_line(master_frame=window, row=3)

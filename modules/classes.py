@@ -7,13 +7,20 @@ background = "#181818"
 
 class HouseHold():
 
-    def __init__(self, HouseHoldName=None,
+    household_instance = []
+
+    def __init__(self,
+                 HouseHoldName=None,
                  HouseHoldNet=None,
-                 HouseHoldShared=None):
+                 HouseHoldShared=None,
+                 household_net_number=None):
 
         self.HouseHoldName = HouseHoldName
         self.HouseHoldNet = HouseHoldNet
         self.HouseHoldShared = HouseHoldShared
+        self.household_net_number = household_net_number
+
+        HouseHold.household_instance.append(self)
 
     def hh_name_entry_widget(self, master_frame):
         text_var = ctk.StringVar()
@@ -76,7 +83,10 @@ class HouseHold():
 
 class HouseHoldMember():
 
-    def __init__(self, MembName=None,
+    member_instances = []
+
+    def __init__(self,
+                 MembName=None,
                  MtlyNet=0,
                  NetPercent=None,
                  ExpenseTotal=None,
@@ -90,6 +100,8 @@ class HouseHoldMember():
         self.total_net = 0
 
         self.income_list = []
+
+        HouseHoldMember.member_instances.append(self)
 
     def memb_name_entry_widget(self, master_frame):
 
@@ -109,6 +121,7 @@ class HouseHoldMember():
             return lambda event: on_entry_confirm(keybind)
 
         def format_income_entry(value):
+            """Function for formatting the numbers input"""
             value = re.sub(r'[^\d]', '', value)
             try:
                 if len(value) > 2:
@@ -172,7 +185,8 @@ class HouseHoldMember():
 
         def on_income_entry_confirm(mtly_net_entry):
             self.MtlyNet = mtly_net_entry.get()
-            self.income_list.append(int(self.MtlyNet))
+            for member in self.member_instances:
+                self.income_list.append(int(member.MtlyNet))
             formatted_net = format_income_entry(self.MtlyNet)
             mtly_net_entry.delete(0, 'end')
             mtly_net_entry.insert(0, str(formatted_net))
@@ -181,19 +195,7 @@ class HouseHoldMember():
             if len(self.income_list) > 1:
                 self.total_net = self.income_list[0] + self.income_list[1]
                 self.total_net = format_income_entry(str(self.total_net))
-                print("the combined total net income is: " + self.total_net)
-
-        def on_income_entry_confirm(mtly_net_entry):
-            self.MtlyNet = mtly_net_entry.get()
-            self.income_list.append(int(self.MtlyNet))
-            formatted_net = format_income_entry(self.MtlyNet)
-            mtly_net_entry.delete(0, 'end')
-            mtly_net_entry.insert(0, str(formatted_net))
-            print(str(self.MembName) + " monthly net income is " + str(self.MtlyNet))
-            """this is for calculating the combined household net"""
-            if len(self.income_list) > 1:
-                self.total_net = self.income_list[0] + self.income_list[1]
-                self.total_net = format_income_entry(str(self.total_net))
+                HouseHold.household_instance[0].household_net_number.configure(text=self.total_net)
                 print("the combined total net income is: " + self.total_net)
 
         create_lambda(on_income_entry_confirm, mtly_net_entry)
