@@ -35,7 +35,7 @@ divider_line_obj = classes.HouseHold()
 divider_line_widget = household_obj.divider_line(master_frame=window, row=3)
 
 """"Combined household net income"""
-household_net_GUI_frame = ctk.CTkFrame(master=window, width=200, fg_color="green", height=40, corner_radius=0)
+household_net_GUI_frame = ctk.CTkFrame(master=window, width=200, fg_color=classes.background, height=40, corner_radius=0)
 household_net_GUI_frame.grid(columnspan=2, padx=35, pady=10, column=0, row=4, sticky="ew")
 
 household_net_obj = classes.HouseHold()

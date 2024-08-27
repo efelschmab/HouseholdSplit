@@ -7,7 +7,9 @@ background = "#181818"
 
 class HouseHold():
 
-    def __init__(self, HouseHoldName=None, HouseHoldNet=None, HouseHoldShared=None):
+    def __init__(self, HouseHoldName=None,
+                 HouseHoldNet=None,
+                 HouseHoldShared=None):
 
         self.HouseHoldName = HouseHoldName
         self.HouseHoldNet = HouseHoldNet
@@ -16,14 +18,14 @@ class HouseHold():
     def hh_name_entry_widget(self, master_frame):
         text_var = ctk.StringVar()
         hh_name_entry = ctk.CTkEntry(master=master_frame,
-                            textvariable=text_var,
-                            fg_color=background,
-                            placeholder_text="Enter Household Name",
-                            font=("Roboto", 18),
-                            corner_radius=0,
-                            border_width=0,
-                            text_color="white",
-                            width=460)
+                                    textvariable=text_var,
+                                    fg_color=background,
+                                    placeholder_text="Enter Household Name",
+                                    font=("Roboto", 18),
+                                    corner_radius=0,
+                                    border_width=0,
+                                    text_color="white",
+                                    width=460)
         hh_name_entry.pack(padx=10, pady=20)
 
         def limit_characters(entry, limit):
@@ -36,7 +38,6 @@ class HouseHold():
 
         def on_name_entry_confirm(hh_name_entry):
             self.HouseHoldName = hh_name_entry.get()
-            HouseHoldMember.memb_name_entry_widget.mem
             print("the new household name is " + self.HouseHoldName)
 
         def create_lambda(hh_name_entry):
@@ -52,19 +53,34 @@ class HouseHold():
         divider_line_frame.grid(column=0, row=row, columnspan=2)
 
     def hh_net_widget(self, master_frame):
-        household_net_frame = ctk.CTkFrame(master=master_frame, fg_color=background, corner_radius=0)
+        household_net_frame = ctk.CTkFrame(master=master_frame,
+                                           fg_color=background,
+                                           corner_radius=0)
         household_net_frame.grid(columnspan=2, sticky="ew", row=0, column=1)
         household_net_frame.grid_columnconfigure(1, weight=1)
         
-        household_net_label = ctk.CTkLabel(master=household_net_frame, fg_color=red, text="Household net / month")
+        household_net_label = ctk.CTkLabel(master=household_net_frame,
+                                           fg_color=background,
+                                           text="Household net / month",
+                                           width=200,
+                                           anchor="w")
         household_net_label.grid(sticky="w", row=0, column=0)
 
-        self.household_net_number = ctk.CTkLabel(master=household_net_frame, fg_color="white", text="test", text_color=green)
+        self.household_net_number = ctk.CTkLabel(master=household_net_frame,
+                                                 fg_color=background,
+                                                 text="0",
+                                                 text_color=green,
+                                                 width=230,
+                                                 anchor="e")
         self.household_net_number.grid(sticky="e", row=0, column=1)
 
 class HouseHoldMember():
 
-    def __init__(self, MembName=None, MtlyNet=0, NetPercent=None, ExpenseTotal=None, MembShare=None):
+    def __init__(self, MembName=None,
+                 MtlyNet=0,
+                 NetPercent=None,
+                 ExpenseTotal=None,
+                 MembShare=None):
 
         self.MembName = MembName
         self.MtlyNet = MtlyNet
@@ -94,7 +110,6 @@ class HouseHoldMember():
 
         def format_income_entry(value):
             value = re.sub(r'[^\d]', '', value)
-            print(value)
             try:
                 if len(value) > 2:
                     value = value[:-2] + '.' + value[-2:]
@@ -104,7 +119,6 @@ class HouseHoldMember():
                     value = float(value)
                     print(f"Float value: {value}")
                 formatted_value = f"{value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-                print(formatted_value)
                 return formatted_value
             except ValueError as e:
                 print(f"Error: {e}")
@@ -163,10 +177,24 @@ class HouseHoldMember():
             mtly_net_entry.delete(0, 'end')
             mtly_net_entry.insert(0, str(formatted_net))
             print(str(self.MembName) + " monthly net income is " + str(self.MtlyNet))
+            """this is for calculating the combined household net"""
             if len(self.income_list) > 1:
                 self.total_net = self.income_list[0] + self.income_list[1]
                 self.total_net = format_income_entry(str(self.total_net))
                 print("the combined total net income is: " + self.total_net)
-        
+
+        def on_income_entry_confirm(mtly_net_entry):
+            self.MtlyNet = mtly_net_entry.get()
+            self.income_list.append(int(self.MtlyNet))
+            formatted_net = format_income_entry(self.MtlyNet)
+            mtly_net_entry.delete(0, 'end')
+            mtly_net_entry.insert(0, str(formatted_net))
+            print(str(self.MembName) + " monthly net income is " + str(self.MtlyNet))
+            """this is for calculating the combined household net"""
+            if len(self.income_list) > 1:
+                self.total_net = self.income_list[0] + self.income_list[1]
+                self.total_net = format_income_entry(str(self.total_net))
+                print("the combined total net income is: " + self.total_net)
+
         create_lambda(on_income_entry_confirm, mtly_net_entry)
         mtly_net_entry.bind("<Return>", create_lambda(on_income_entry_confirm, mtly_net_entry))
