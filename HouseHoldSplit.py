@@ -31,7 +31,6 @@ household_member_2_frame.grid(columnspan=1, padx=10, pady=10, column=1, row=2)
 memb_obj_2 = classes.HouseHoldMember()
 memb_2_widget = memb_obj_2.memb_name_entry_widget(master_frame=household_member_2_frame)
 
-divider_line_obj = classes.HouseHold()
 divider_line_widget = household_obj.divider_line(master_frame=window, row=3)
 
 """"Combined household net income"""
@@ -40,5 +39,18 @@ household_net_GUI_frame.grid(columnspan=2, padx=35, pady=10, column=0, row=4, st
 
 household_net_obj = classes.HouseHold()
 household_net_widget = household_obj.hh_net_widget(master_frame=household_net_GUI_frame)
+
+divider_line_widget = household_obj.divider_line(master_frame=window, row=5)
+
+""""Member% of hosehold net"""
+percent_net_container = ctk.CTkFrame(master=window, width=430, corner_radius=0, fg_color=classes.background)
+percent_net_container.grid(columnspan=3, padx=10, pady=10)
+
+memb1_percent_widget = memb_obj_1.member_percent_of_net(master_frame=percent_net_container, column_in=0)
+
+percent_label = ctk.CTkLabel(master=percent_net_container, fg_color=classes.background, corner_radius=0, width=20, text="% of household net")
+percent_label.grid(row=0, column=1, padx=10, sticky="n")
+
+memb2_percent_widget = memb_obj_2.member_percent_of_net(master_frame=percent_net_container, column_in=2)
 
 window.mainloop()

@@ -13,12 +13,15 @@ class HouseHold():
                  HouseHoldName=None,
                  HouseHoldNet=None,
                  HouseHoldShared=None,
-                 household_net_number=None):
+                 household_net_number=None,
+                 household_dict={}):
 
         self.HouseHoldName = HouseHoldName
         self.HouseHoldNet = HouseHoldNet
         self.HouseHoldShared = HouseHoldShared
         self.household_net_number = household_net_number
+
+        self.household_dict = household_dict
 
         HouseHold.household_instance.append(self)
 
@@ -45,6 +48,8 @@ class HouseHold():
 
         def on_name_entry_confirm(hh_name_entry):
             self.HouseHoldName = hh_name_entry.get()
+            self.household_dict["Household name"] = self.HouseHoldName
+            print(self.household_dict)
             print("the new household name is " + self.HouseHoldName)
 
         def create_lambda(hh_name_entry):
@@ -52,12 +57,16 @@ class HouseHold():
         
         hh_name_entry.bind("<Return>", create_lambda(hh_name_entry))
 
+
+
     def divider_line(self, master_frame, row):
         divider_line_frame = ctk.CTkFrame(master=master_frame,
                             height=2,
                             fg_color="#ffffff",
                             width=430)
         divider_line_frame.grid(column=0, row=row, columnspan=2)
+
+
 
     def hh_net_widget(self, master_frame):
         household_net_frame = ctk.CTkFrame(master=master_frame,
@@ -90,7 +99,9 @@ class HouseHoldMember():
                  MtlyNet=0,
                  NetPercent=None,
                  ExpenseTotal=None,
-                 MembShare=None):
+                 MembShare=None,
+                 percent_of_net_widget=None,
+                 member_dict={}):
 
         self.MembName = MembName
         self.MtlyNet = MtlyNet
@@ -98,8 +109,12 @@ class HouseHoldMember():
         self.ExpenseTotal = ExpenseTotal
         self.MembShare = MembShare
         self.total_net = 0
+        self.percent_of_net_widget = percent_of_net_widget
+        self.mtly_net_unformatted = 0
+        self.total_net_unformatted = 0
+        self.member_dict = member_dict
 
-        self.income_list = []
+        self.income_dict = {}
 
         HouseHoldMember.member_instances.append(self)
 
@@ -160,6 +175,7 @@ class HouseHoldMember():
 
         def on_name_entry_confirm(memb_name_entry):
             self.MembName = memb_name_entry.get()
+            self.member_dict["Household member name"] = self.MembName
             print("the household member name is " + self.MembName)
 
         create_lambda(on_name_entry_confirm, memb_name_entry)
@@ -185,18 +201,47 @@ class HouseHoldMember():
 
         def on_income_entry_confirm(mtly_net_entry):
             self.MtlyNet = mtly_net_entry.get()
-            for member in self.member_instances:
-                self.income_list.append(int(member.MtlyNet))
+            self.mtly_net_unformatted = self.MtlyNet.replace(".", "").replace(",", "")
+
+            for i, member in enumerate(self.member_instances):
+                self.income_dict[f"member_{i}"] = int(member.mtly_net_unformatted)
+                print("the income dictionary is:")
+                print(self.income_dict)
+
+            """format input, format it and put it back onto the label"""
             formatted_net = format_income_entry(self.MtlyNet)
+            self.member_dict["Member net income"] = formatted_net
             mtly_net_entry.delete(0, 'end')
             mtly_net_entry.insert(0, str(formatted_net))
-            print(str(self.MembName) + " monthly net income is " + str(self.MtlyNet))
+            print(str(self.MembName) + " monthly net income is " + str(formatted_net))
+
             """this is for calculating the combined household net"""
-            if len(self.income_list) > 1:
-                self.total_net = self.income_list[0] + self.income_list[1]
-                self.total_net = format_income_entry(str(self.total_net))
-                HouseHold.household_instance[0].household_net_number.configure(text=self.total_net)
-                print("the combined total net income is: " + self.total_net)
+            self.total_net = sum(self.income_dict.values())
+            self.total_net_unformatted = self.total_net
+            self.total_net = format_income_entry(str(self.total_net))
+
+            HouseHold.household_instance[0].household_dict["Net income"] = self.total_net
+            HouseHold.household_instance[0].household_net_number.configure(text=self.total_net)
+
+            print("the combined total net income is: " + self.total_net)
+            if all(value != 0 for value in self.income_dict.values()):
+                for member in self.member_instances:
+                    percent_number = str(round(self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)) + "%"
+                    member.percent_of_net_widget.configure(text=percent_number)
+                    self.member_dict["Member percent share"] = percent_number
 
         create_lambda(on_income_entry_confirm, mtly_net_entry)
         mtly_net_entry.bind("<Return>", create_lambda(on_income_entry_confirm, mtly_net_entry))
+
+    def member_percent_of_net(self, master_frame, column_in):
+        self.percent_of_net_widget = ctk.CTkLabel(master=master_frame,
+                                                fg_color=background,
+                                                text=" ",
+                                                width=150)
+        self.percent_of_net_widget.grid(row=0, column=column_in, sticky="n")
+
+    def calculate_member_percent_share(self, input):
+        percent_share = (int(input) / self.total_net_unformatted) * 100
+        print("input for the % share calculation: " + str(input) + " and " + str(self.total_net_unformatted))
+        print("calculated % share = " + str(percent_share))
+        return percent_share
