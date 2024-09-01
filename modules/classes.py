@@ -112,7 +112,13 @@ class HouseHoldMember():
         self.percent_of_net_widget = percent_of_net_widget
         self.mtly_net_unformatted = 0
         self.total_net_unformatted = 0
+
         self.member_dict = member_dict
+
+        self.member_dict["member_net_income"] = 0
+        self.member_dict["member_net_raw"] = 0
+        self.member_dict["household_member_name"] = ""
+        self.member_dict["member_percent_share"] = 0
 
         self.income_dict = {}
 
@@ -175,7 +181,6 @@ class HouseHoldMember():
 
         def on_name_entry_confirm(memb_name_entry):
             self.MembName = memb_name_entry.get()
-            self.member_dict["Household member name"] = self.MembName
             print("the household member name is " + self.MembName)
 
         create_lambda(on_name_entry_confirm, memb_name_entry)
@@ -209,11 +214,10 @@ class HouseHoldMember():
                 print(self.income_dict)
 
             """format input, format it and put it back onto the label"""
-            formatted_net = format_income_entry(self.MtlyNet)
-            self.member_dict["Member net income"] = formatted_net
+            self.formatted_net = format_income_entry(self.MtlyNet)
             mtly_net_entry.delete(0, 'end')
-            mtly_net_entry.insert(0, str(formatted_net))
-            print(str(self.MembName) + " monthly net income is " + str(formatted_net))
+            mtly_net_entry.insert(0, str(self.formatted_net))
+            print(str(self.MembName) + " monthly net income is " + str(self.formatted_net))
 
             """this is for calculating the combined household net"""
             self.total_net = sum(self.income_dict.values())
@@ -228,7 +232,14 @@ class HouseHoldMember():
                 for member in self.member_instances:
                     percent_number = str(round(self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)) + "%"
                     member.percent_of_net_widget.configure(text=percent_number)
-                    self.member_dict["Member percent share"] = percent_number
+                    """filling the member dictionary"""
+                    self.member_dict["member_percent_share"] = percent_number
+                    self.member_dict["member_net_income"] = member.formatted_net
+                    self.member_dict["member_net_raw"] = member.mtly_net_unformatted
+                    self.member_dict["household_member_name"] = member.MembName
+
+                    print(member.MembName + " dictionary: ")
+                    print(member.member_dict)
 
         create_lambda(on_income_entry_confirm, mtly_net_entry)
         mtly_net_entry.bind("<Return>", create_lambda(on_income_entry_confirm, mtly_net_entry))
