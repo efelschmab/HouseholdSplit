@@ -26,7 +26,6 @@ divider_line_obj = classes.HouseHold()
 divider_line_horizontal_widget = household_obj.divider_line_horizontal(master_frame=window, row=1)
 
 """Household members"""
-
 household_members_basic_frame = ctk.CTkFrame(master=window,
                                              fg_color=classes.background)
 household_members_basic_frame.grid(columnspan=3)
@@ -119,7 +118,9 @@ member_1_expenses_frame.grid(columnspan=1,
                              sticky="n")
 
 memb_1_expenses = memb_obj_1.expenses_widget(master_frame=member_1_expenses_frame)
-memb_1_add_expenses_widget = memb_obj_1.add_expenses(master_frame=member_1_expenses_frame)
+
+# def spawn_expense():
+#     memb_1_add_expenses_widget = memb_obj_1.add_expenses(master_frame=member_1_expenses_frame, expense_name=classes.HouseHoldMember.expense_entry_dict["expense_name"], expense_value=classes.HouseHoldMember.expense_entry_dict["expense_amount_formatted"])
 
 divider_line_vertical_widget = household_obj.divider_line_vertical(master_frame=expenses_base_frame,
                                                                    column=1,
@@ -139,6 +140,6 @@ member_2_expenses_frame.grid(columnspan=1,
                              sticky="n")
 
 memb_2_expenses = memb_obj_2.expenses_widget(master_frame=member_2_expenses_frame)
-memb_2_add_expenses_widget = memb_obj_2.add_expenses(master_frame=member_2_expenses_frame)
+#memb_2_add_expenses_widget = memb_obj_2.add_expenses(master_frame=member_2_expenses_frame)
 
 window.mainloop()
