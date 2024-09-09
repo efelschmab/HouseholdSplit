@@ -118,9 +118,7 @@ member_1_expenses_frame.grid(columnspan=1,
                              sticky="n")
 
 memb_1_expenses = memb_obj_1.expenses_widget(master_frame=member_1_expenses_frame)
-
-# def spawn_expense():
-#     memb_1_add_expenses_widget = memb_obj_1.add_expenses(master_frame=member_1_expenses_frame, expense_name=classes.HouseHoldMember.expense_entry_dict["expense_name"], expense_value=classes.HouseHoldMember.expense_entry_dict["expense_amount_formatted"])
+memb_1_add_expense = memb_obj_1.add_expense_widget_frame(master_frame=member_1_expenses_frame)
 
 divider_line_vertical_widget = household_obj.divider_line_vertical(master_frame=expenses_base_frame,
                                                                    column=1,
@@ -140,6 +138,6 @@ member_2_expenses_frame.grid(columnspan=1,
                              sticky="n")
 
 memb_2_expenses = memb_obj_2.expenses_widget(master_frame=member_2_expenses_frame)
-#memb_2_add_expenses_widget = memb_obj_2.add_expenses(master_frame=member_2_expenses_frame)
+memb_2_add_expense = memb_obj_2.add_expense_widget_frame(master_frame=member_2_expenses_frame)
 
 window.mainloop()

@@ -137,6 +137,7 @@ class HouseHold():
 class HouseHoldMember():
 
     member_instances = []
+    
 
     def __init__(self,
                  MembName=None,
@@ -165,6 +166,8 @@ class HouseHoldMember():
         self.member_dict["member_percent_share"] = 0
 
         self.income_dict = {}
+        self.expense_entry_list = []
+        self.expense_row = 1
 
         HouseHoldMember.member_instances.append(self)
 
@@ -289,21 +292,29 @@ class HouseHoldMember():
                                     command=self.floating_expense_entry)
         self.add_expense_btn.grid(sticky="n", column=1, row=0)
 
-    def add_expenses(self, master_frame, expense_name, expense_value):
+    def add_expense_widget_frame(self, master_frame):
+        self.add_expense_widget_container = ctk.CTkFrame(master=master_frame, corner_radius=0, fg_color=background)
+        self.add_expense_widget_container.grid(columnspan=1, row=1)
 
-        expense_field_frame = ctk.CTkFrame(master=master_frame,
+    def add_expenses(self, expense_name, expense_value):
+        """This is the actual widget that is beeing created on the GUI"""
+        expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
                                            fg_color=entry_background,
                                            width=200,
                                            corner_radius=entry_round_corners)
         expense_field_frame.grid(columnspan=3,
-                                 row=1,
+                                 row=self.expense_row,
                                  pady=member_widget_pady,
                                  padx=member_widget_padx)
         
+        def remove_expense_btn():
+            expense_field_frame.destroy()
+
         remove_expense = ctk.CTkButton(master=expense_field_frame,
                                        corner_radius=100,
                                        width=20,
                                        height=20,
+                                       command=remove_expense_btn,
                                        text="X")
         remove_expense.grid(pady=member_widget_pady,
                             padx=member_widget_padx,
@@ -336,6 +347,8 @@ class HouseHoldMember():
         expense_amount_field.grid(column=1,
                                   row=0)
         
+        self.expense_row += 1
+        
     def floating_expense_entry(self):
 
         expense_entry = ctk.CTkToplevel()
@@ -348,9 +361,6 @@ class HouseHoldMember():
         self.expense_entry_dict["expense_name"] = ""
         self.expense_entry_dict["expense_amount_raw"] = ""
         self.expense_entry_dict["expense_amount_formatted"] = ""
-
-        self.expense_entry_list = []
-        self.expense_entry_list.append(self.expense_entry_dict)
 
         def create_expense_widget():
             """Filling the expense entry dict for future use"""
@@ -368,9 +378,11 @@ class HouseHoldMember():
                 expense_widget_amount = str(expense_widget_amount).replace(".", "")
                             
             self.expense_entry_dict["expense_amount_formatted"] = format_income_entry(expense_widget_amount)
+            self.expense_entry_list.append(self.expense_entry_dict)
+            print(self.expense_entry_dict)
+            print(self.expense_entry_list)
 
-            # from ..HouseHoldSplit import spawn_expense
-            # spawn_expense()
+            self.add_expenses(expense_name=self.expense_entry_dict["expense_name"], expense_value=self.expense_entry_dict["expense_amount_formatted"])
 
             expense_entry.destroy()
 
