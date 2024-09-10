@@ -168,6 +168,9 @@ class HouseHoldMember():
         self.income_dict = {}
         self.expense_entry_list = []
         self.expense_row = 1
+        self.next_expense_id = 0
+
+        self.expense_widget_list = []
 
         HouseHoldMember.member_instances.append(self)
 
@@ -298,19 +301,29 @@ class HouseHoldMember():
 
     def add_expenses(self, expense_name, expense_value):
         """This is the actual widget that is beeing created on the GUI"""
-        expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
+        
+        self.expense_ID = self.next_expense_id
+        
+        print(f"the '{expense_name}' ID is '{self.expense_ID}'")
+
+        self.expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
                                            fg_color=entry_background,
                                            width=200,
                                            corner_radius=entry_round_corners)
-        expense_field_frame.grid(columnspan=3,
+        self.expense_field_frame.grid(columnspan=3,
                                  row=self.expense_row,
                                  pady=member_widget_pady,
                                  padx=member_widget_padx)
         
         def remove_expense_btn():
-            expense_field_frame.destroy()
+            # self.expense_field_frame.destroy()
+            expense_entry_list_copy = self.expense_entry_list[:]
+            print(f"the clicked expense ID number is {self.expense_ID}")
+            for entry in expense_entry_list_copy:
+                break
 
-        remove_expense = ctk.CTkButton(master=expense_field_frame,
+
+        remove_expense = ctk.CTkButton(master=self.expense_field_frame,
                                        corner_radius=100,
                                        width=20,
                                        height=20,
@@ -322,20 +335,20 @@ class HouseHoldMember():
                             row=0,
                             sticky="nw")
         
-        name_and_amount_frame = ctk.CTkFrame(master=expense_field_frame,
+        name_and_amount_frame = ctk.CTkFrame(master=self.expense_field_frame,
                                   width=150,
                                   height=20,
                                   fg_color=entry_background,
                                   corner_radius=entry_round_corners)
         name_and_amount_frame.grid(column=1, row=0)
 
-        expense_name_field = ctk.CTkLabel(master=name_and_amount_frame,
+        self.expense_name_field = ctk.CTkLabel(master=name_and_amount_frame,
                                           width=100,
                                           height=20,
                                           fg_color=entry_background,
                                           corner_radius=entry_round_corners,
-                                          text=expense_name)
-        expense_name_field.grid(column=0,
+                                          text=f"{expense_name} {self.expense_ID}")
+        self.expense_name_field.grid(column=0,
                                 row=0,
                                 sticky="e")
 
@@ -361,6 +374,7 @@ class HouseHoldMember():
         self.expense_entry_dict["expense_name"] = ""
         self.expense_entry_dict["expense_amount_raw"] = ""
         self.expense_entry_dict["expense_amount_formatted"] = ""
+        self.expense_entry_dict["ID"] = self.next_expense_id
 
         def create_expense_widget():
             """Filling the expense entry dict for future use"""
@@ -373,7 +387,8 @@ class HouseHoldMember():
                 expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
                 expense_widget_amount = expense_widget_amount[:-2] + "." + expense_widget_amount[-2:]
                 expense_widget_amount = float(expense_widget_amount) / 12
-                self.expense_entry_dict["expense_amount_raw"] = str(expense_widget_amount).replace(".", "")
+                amount_numbers = len(self.expense_entry_dict["expense_amount_raw"])
+                self.expense_entry_dict["expense_amount_raw"] = str(expense_widget_amount)[:amount_numbers].replace(".", "")
                 expense_widget_amount = round(expense_widget_amount, 2)
                 expense_widget_amount = str(expense_widget_amount).replace(".", "")
                             
@@ -383,6 +398,8 @@ class HouseHoldMember():
             print(self.expense_entry_list)
 
             self.add_expenses(expense_name=self.expense_entry_dict["expense_name"], expense_value=self.expense_entry_dict["expense_amount_formatted"])
+            self.calculate_total_expenses()
+            self.next_expense_id += 1
 
             expense_entry.destroy()
 
@@ -447,6 +464,20 @@ class HouseHoldMember():
                                     command=create_expense_widget)
         self.confirm_btn.grid(column=3, row=0)
 
-    def total_expenses(self, master_frame, row):
-        total_expenses_frame = ctk.CTkFrame(master=master_frame, fg_color=red)
-        total_expenses_frame.grid(columnspan=3, row=row)
+    def calculate_total_expenses(self):
+        total_expenses = 0
+        for entry in self.expense_entry_list:
+            total_expenses = int(total_expenses) + int(entry["expense_amount_raw"])
+        
+        total_expenses = format_income_entry(str(total_expenses))
+        self.total_label_amount.configure(text=total_expenses)
+
+    def total_expenses(self, master_frame, column):
+        total_expenses_frame = ctk.CTkFrame(master=master_frame, fg_color=background, width=100)
+        total_expenses_frame.grid(columnspan=2, column=column, row=0)
+
+        total_label_text = ctk.CTkLabel(master=total_expenses_frame, fg_color=background, text="total monthly expenses", anchor="w", width=40)
+        total_label_text.grid(row=0, column=0, sticky="w", pady=member_widget_pady, padx=10)
+
+        self.total_label_amount = ctk.CTkLabel(master=total_expenses_frame, fg_color=background, text="0.000,00", anchor="e", width=40, text_color=red)
+        self.total_label_amount.grid(row=0, column=1, sticky="e", pady=member_widget_pady, padx=10)
