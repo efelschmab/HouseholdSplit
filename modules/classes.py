@@ -408,9 +408,9 @@ class HouseHoldMember():
                             font=("Roboto", 10),
                             corner_radius=0,
                             border_width=0,
-                            text_color="white",
                             width=60,
-                            fg_color=entry_background)
+                            fg_color=entry_background,
+                            text_color=red)
         expense_value_entry.grid(pady=member_widget_pady, padx=member_widget_padx, column=1, row=0)
 
         expense_value_character_limit = 7
@@ -446,3 +446,7 @@ class HouseHoldMember():
                                     state="disabled",
                                     command=create_expense_widget)
         self.confirm_btn.grid(column=3, row=0)
+
+    def total_expenses(self, master_frame, row):
+        total_expenses_frame = ctk.CTkFrame(master=master_frame, fg_color=red)
+        total_expenses_frame.grid(columnspan=3, row=row)

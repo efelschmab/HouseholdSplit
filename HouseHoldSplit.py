@@ -120,6 +120,8 @@ member_1_expenses_frame.grid(columnspan=1,
 memb_1_expenses = memb_obj_1.expenses_widget(master_frame=member_1_expenses_frame)
 memb_1_add_expense = memb_obj_1.add_expense_widget_frame(master_frame=member_1_expenses_frame)
 
+memb_1_total_expenses = memb_obj_1.total_expenses(master_frame=window, row=8)
+
 divider_line_vertical_widget = household_obj.divider_line_vertical(master_frame=expenses_base_frame,
                                                                    column=1,
                                                                    row=0,
@@ -139,5 +141,7 @@ member_2_expenses_frame.grid(columnspan=1,
 
 memb_2_expenses = memb_obj_2.expenses_widget(master_frame=member_2_expenses_frame)
 memb_2_add_expense = memb_obj_2.add_expense_widget_frame(master_frame=member_2_expenses_frame)
+
+memb_1_total_expenses = memb_obj_1.total_expenses(master_frame=window, row=8)
 
 window.mainloop()
