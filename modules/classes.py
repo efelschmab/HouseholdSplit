@@ -134,6 +134,10 @@ class HouseHold():
                                                  anchor="e")
         self.household_net_number.grid(sticky="e", row=0, column=1)
 
+    def total_shared_expenses_widget(self, master_frame):
+        self.total_shared_expenses_lbl = ctk.CTkLabel(master=master_frame, fg_color=background, text="0,00", compound="center", width=40, text_color=red, font=("Roboto", 12))
+        self.total_shared_expenses_lbl.grid(columnspan=3, padx=0, pady=0)
+
 class HouseHoldMember():
 
     member_instances = []
@@ -164,6 +168,7 @@ class HouseHoldMember():
         self.member_dict["member_net_raw"] = 0
         self.member_dict["household_member_name"] = ""
         self.member_dict["member_percent_share"] = 0
+        self.member_dict["member_percent_raw"] = 0
 
         self.income_dict = {}
         self.expense_entry_list = []
@@ -253,7 +258,9 @@ class HouseHoldMember():
             if all(value != 0 for value in self.income_dict.values()):
                 for member in self.member_instances:
                     percent_number = str(round(self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)) + "%"
+                    self.member_dict["member_percent_raw"] = round(self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)
                     member.percent_of_net_widget.configure(text=percent_number)
+                    member.member_share_percent.configure(text=percent_number)
                     """filling the member dictionary"""
                     self.member_dict["member_percent_share"] = percent_number
                     self.member_dict["member_net_income"] = member.formatted_net
@@ -332,6 +339,8 @@ class HouseHoldMember():
                     break
 
             self.calculate_total_expenses()
+            self.calculate_combined_total_expenses()
+            self.calculate_member_percent_amount()
 
         remove_expense = ctk.CTkButton(master=expense_field_frame,
                                        corner_radius=100,
@@ -404,11 +413,12 @@ class HouseHoldMember():
                             
             self.expense_entry_dict["expense_amount_formatted"] = format_income_entry(expense_widget_amount)
             self.expense_entry_list.append(self.expense_entry_dict)
-            print(self.expense_entry_dict)
-            print(self.expense_entry_list)
-
+            
             self.add_expenses(expense_name=self.expense_entry_dict["expense_name"], expense_value=self.expense_entry_dict["expense_amount_formatted"])
             self.calculate_total_expenses()
+            self.calculate_combined_total_expenses()
+            self.calculate_member_percent_amount()
+
             self.next_expense_id += 1
 
             expense_entry.destroy()
@@ -446,7 +456,6 @@ class HouseHoldMember():
         def optionmenu_callback(choice):
             self.optionmenu_value.set(choice)
             activate_entry(self.confirm_btn)
-            print("Selected choice:", choice)
 
         self.optionmenu_value = ctk.StringVar()
         optionmenu = ctk.CTkOptionMenu(master=expense_entry,
@@ -489,5 +498,38 @@ class HouseHoldMember():
         total_label_text = ctk.CTkLabel(master=total_expenses_frame, fg_color=background, text="total monthly expenses", anchor="w", width=40)
         total_label_text.grid(row=0, column=0, sticky="w", pady=member_widget_pady, padx=10)
 
-        self.total_label_amount = ctk.CTkLabel(master=total_expenses_frame, fg_color=background, text="0.000,00", anchor="e", width=40, text_color=red)
+        self.total_label_amount = ctk.CTkLabel(master=total_expenses_frame, fg_color=background, text="0,00", anchor="e", width=40, text_color=red)
         self.total_label_amount.grid(row=0, column=1, sticky="e", pady=member_widget_pady, padx=10)
+
+    def calculate_combined_total_expenses(self):
+        combined_expense_list = []
+        for member in HouseHoldMember.member_instances:
+            combined_expense_list.extend(member.expense_entry_list)
+        total = 0
+        for expense in combined_expense_list:
+            total = int(total) + int(expense["expense_amount_raw"])
+            total_raw = total
+        total = format_income_entry(str(total))
+        HouseHold.household_instance[0].household_dict["total_expenses"] = total_raw
+        HouseHold.household_instance[0].total_shared_expenses_lbl.configure(text=total)
+
+    def member_share_of_total(self, master_frame, column):
+        member_share_frame = ctk.CTkFrame(master=master_frame, fg_color=background)
+        member_share_frame.grid(column=column, sticky="n", row=0)
+
+        self.member_share_percent = ctk.CTkLabel(master=member_share_frame, font=("Roboto", 10), text_color="white", text="0.0%", width=200, height=5)
+        self.member_share_percent.grid(sticky="n")
+
+        self.member_share_amount = ctk.CTkLabel(master=member_share_frame, font=("Roboto", 14), text_color="white", text="0,00", width=200, height=5)
+        self.member_share_amount.grid(sticky="n")
+
+    def calculate_member_percent_amount(self):
+        expenses = HouseHold.household_instance[0].household_dict["total_expenses"]
+        for member in HouseHoldMember.member_instances:
+            print(member.member_dict)
+            # percent = member.member_dict["member_percent_raw"] / 100
+            # print(f"the {member.member_dict["household_member_name"]} percent amount is {percent}")
+
+        # member_amount = expenses * percent
+        # member_amount = str(member_amount) + " %"
+        # self.member_share_amount.configure(text=member_amount)

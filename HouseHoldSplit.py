@@ -123,7 +123,7 @@ memb_1_add_expense = memb_obj_1.add_expense_widget_frame(master_frame=member_1_e
 divider_line_vertical_widget = household_obj.divider_line_vertical(master_frame=expenses_base_frame,
                                                                    column=1,
                                                                    row=0,
-                                                                   height=400)
+                                                                   height=300)
 
 member_2_expenses_frame = ctk.CTkFrame(master=expenses_base_frame,
                                        width=200,
@@ -146,5 +146,35 @@ member_expenses_total_frame.grid(columnspan=3, row=8)
 memb_1_total_expenses = memb_obj_1.total_expenses(master_frame=member_expenses_total_frame, column=0)
 
 memb_2_total_expenses = memb_obj_2.total_expenses(master_frame=member_expenses_total_frame, column=2)
+
+divider_line_horizontal_widget = household_obj.divider_line_horizontal(master_frame=window, row=9)
+
+"""Total shared expenses"""
+total_shared_expenses_text = ctk.CTkLabel(master=window, text="Total shared expenses", font=("Roboto", 14), text_color="white", fg_color=classes.background)
+total_shared_expenses_text.grid(columnspan=3, row=10)
+
+total_shared_widget = household_obj.total_shared_expenses_widget(master_frame=window)
+
+divider_line_horizontal_widget = household_obj.divider_line_horizontal(master_frame=window, row=12)
+
+"""Share of total"""
+total_shared_expenses_text = ctk.CTkLabel(master=window, text="share of total", font=("Roboto", 14), text_color="white", fg_color=classes.background)
+total_shared_expenses_text.grid(columnspan=3, row=13)
+
+member_share_container = ctk.CTkFrame(master=window, fg_color=classes.background)
+member_share_container.grid(columnspan=3, row=14, pady=10)
+
+memb_1_share = memb_obj_1.member_share_of_total(master_frame=member_share_container, column=0)
+
+divider_line_vertical_widget = household_obj.divider_line_vertical(master_frame=member_share_container,
+                                                                   column=1,
+                                                                   row=0,
+                                                                   height=20)
+
+memb_2_share = memb_obj_2.member_share_of_total(master_frame=member_share_container, column=2)
+
+divider_line_horizontal_widget = household_obj.divider_line_horizontal(master_frame=window, row=15)
+
+"""Conclusion"""
 
 window.mainloop()
