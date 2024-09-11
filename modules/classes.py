@@ -302,32 +302,42 @@ class HouseHoldMember():
     def add_expenses(self, expense_name, expense_value):
         """This is the actual widget that is beeing created on the GUI"""
         
-        self.expense_ID = self.next_expense_id
+        expense_ID = self.next_expense_id
         
-        print(f"the '{expense_name}' ID is '{self.expense_ID}'")
+        print(f"the '{expense_name}' ID is '{expense_ID}'")
 
-        self.expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
+        expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
                                            fg_color=entry_background,
                                            width=200,
                                            corner_radius=entry_round_corners)
-        self.expense_field_frame.grid(columnspan=3,
+        expense_field_frame.grid(columnspan=3,
                                  row=self.expense_row,
                                  pady=member_widget_pady,
                                  padx=member_widget_padx)
+
+        self.expense_widget_list.append((expense_ID, expense_field_frame))
         
-        def remove_expense_btn():
-            # self.expense_field_frame.destroy()
+        def remove_expense_btn(widget_ID=expense_ID):
+            for id, frame in self.expense_widget_list:
+                if id == widget_ID:
+                    frame.destroy()
+                    break
+            self.expense_widget_list[:] = [entry for entry in self.expense_widget_list if entry[0] != widget_ID]
+
             expense_entry_list_copy = self.expense_entry_list[:]
-            print(f"the clicked expense ID number is {self.expense_ID}")
+            print(f"the clicked expense ID number is {widget_ID}")
             for entry in expense_entry_list_copy:
-                break
+                if entry["ID"] == widget_ID:
+                    self.expense_entry_list.remove(entry)
+                    break
 
+            self.calculate_total_expenses()
 
-        remove_expense = ctk.CTkButton(master=self.expense_field_frame,
+        remove_expense = ctk.CTkButton(master=expense_field_frame,
                                        corner_radius=100,
                                        width=20,
                                        height=20,
-                                       command=remove_expense_btn,
+                                       command=lambda: remove_expense_btn(expense_ID),
                                        text="X")
         remove_expense.grid(pady=member_widget_pady,
                             padx=member_widget_padx,
@@ -335,7 +345,7 @@ class HouseHoldMember():
                             row=0,
                             sticky="nw")
         
-        name_and_amount_frame = ctk.CTkFrame(master=self.expense_field_frame,
+        name_and_amount_frame = ctk.CTkFrame(master=expense_field_frame,
                                   width=150,
                                   height=20,
                                   fg_color=entry_background,
@@ -347,7 +357,7 @@ class HouseHoldMember():
                                           height=20,
                                           fg_color=entry_background,
                                           corner_radius=entry_round_corners,
-                                          text=f"{expense_name} {self.expense_ID}")
+                                          text=f"{expense_name} {expense_ID}")
         self.expense_name_field.grid(column=0,
                                 row=0,
                                 sticky="e")
@@ -421,7 +431,7 @@ class HouseHoldMember():
         expense_value_entry_var = ctk.StringVar()
         expense_value_entry = ctk.CTkEntry(master=expense_entry,
                             textvariable=expense_value_entry_var,
-                            placeholder_text="0000.00",
+                            placeholder_text="0,00",
                             font=("Roboto", 10),
                             corner_radius=0,
                             border_width=0,
