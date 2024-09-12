@@ -91,7 +91,7 @@ class HouseHold():
             self.household_dict["Household name"] = self.HouseHoldName
             activate_entry(HouseHoldMember.member_instances[0].memb_name_entry)
             print(self.household_dict)
-            print("the new household name is " + self.HouseHoldName)
+            print(f"the new household name is {self.HouseHoldName}")
 
         def create_lambda(hh_name_entry):
             return lambda event: on_name_entry_confirm(hh_name_entry)
@@ -142,15 +142,13 @@ class HouseHoldMember():
 
     member_instances = []
     
-
     def __init__(self,
                  MembName=None,
                  MtlyNet=0,
                  NetPercent=None,
                  ExpenseTotal=None,
                  MembShare=None,
-                 percent_of_net_widget=None,
-                 member_dict={}):
+                 percent_of_net_widget=None):
 
         self.MembName = MembName
         self.MtlyNet = MtlyNet
@@ -162,13 +160,11 @@ class HouseHoldMember():
         self.mtly_net_unformatted = 0
         self.total_net_unformatted = 0
 
-        self.member_dict = member_dict
-
-        self.member_dict["member_net_income"] = 0
-        self.member_dict["member_net_raw"] = 0
-        self.member_dict["household_member_name"] = ""
-        self.member_dict["member_percent_share"] = 0
-        self.member_dict["member_percent_raw"] = 0
+        self.member_dict = {"member_net_income": 0, 
+                            "member_net_raw": 0, 
+                            "household_member_name": "", 
+                            "member_percent_share": 0, 
+                            "member_percent_raw": 0}
 
         self.income_dict = {}
         self.expense_entry_list = []
@@ -234,8 +230,6 @@ class HouseHoldMember():
 
             for i, member in enumerate(self.member_instances):
                 self.income_dict[f"member_{i}"] = int(member.mtly_net_unformatted)
-                print("the income dictionary is:")
-                print(self.income_dict)
 
             """format input, format it and put it back onto the label"""
             self.formatted_net = format_income_entry(self.MtlyNet)
@@ -254,21 +248,20 @@ class HouseHoldMember():
             activate_entry(self.member_instances[1].memb_name_entry)
             activate_entry(self.add_expense_btn)
 
-            print("the combined total net income is: " + self.total_net)
+            print(f"the combined total net income is: {self.total_net}")
             if all(value != 0 for value in self.income_dict.values()):
                 for member in self.member_instances:
                     percent_number = str(round(self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)) + "%"
-                    self.member_dict["member_percent_raw"] = round(self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)
+                    member.member_dict["member_percent_raw"] = round(self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)
                     member.percent_of_net_widget.configure(text=percent_number)
                     member.member_share_percent.configure(text=percent_number)
                     """filling the member dictionary"""
-                    self.member_dict["member_percent_share"] = percent_number
-                    self.member_dict["member_net_income"] = member.formatted_net
-                    self.member_dict["member_net_raw"] = member.mtly_net_unformatted
-                    self.member_dict["household_member_name"] = member.MembName
+                    member.member_dict["member_percent_share"] = percent_number
+                    member.member_dict["member_net_income"] = member.formatted_net
+                    member.member_dict["member_net_raw"] = member.mtly_net_unformatted
+                    member.member_dict["household_member_name"] = member.MembName
 
-                    print(member.MembName + " dictionary: ")
-                    print(member.member_dict)
+                    print(f"{member.MembName} dictionary:{member.member_dict} ")
 
         create_lambda(on_income_entry_confirm, self.mtly_net_entry)
         self.mtly_net_entry.bind("<Return>", create_lambda(on_income_entry_confirm, self.mtly_net_entry))
@@ -282,8 +275,6 @@ class HouseHoldMember():
 
     def calculate_member_percent_share(self, input):
         percent_share = (int(input) / self.total_net_unformatted) * 100
-        print("input for the % share calculation: " + str(input) + " and " + str(self.total_net_unformatted))
-        print("calculated % share = " + str(percent_share))
         return percent_share
 
     """Adding expenses"""
@@ -311,8 +302,6 @@ class HouseHoldMember():
         
         expense_ID = self.next_expense_id
         
-        print(f"the '{expense_name}' ID is '{expense_ID}'")
-
         expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
                                            fg_color=entry_background,
                                            width=200,
@@ -332,7 +321,6 @@ class HouseHoldMember():
             self.expense_widget_list[:] = [entry for entry in self.expense_widget_list if entry[0] != widget_ID]
 
             expense_entry_list_copy = self.expense_entry_list[:]
-            print(f"the clicked expense ID number is {widget_ID}")
             for entry in expense_entry_list_copy:
                 if entry["ID"] == widget_ID:
                     self.expense_entry_list.remove(entry)
@@ -524,12 +512,14 @@ class HouseHoldMember():
         self.member_share_amount.grid(sticky="n")
 
     def calculate_member_percent_amount(self):
-        expenses = HouseHold.household_instance[0].household_dict["total_expenses"]
-        for member in HouseHoldMember.member_instances:
-            print(member.member_dict)
-            # percent = member.member_dict["member_percent_raw"] / 100
-            # print(f"the {member.member_dict["household_member_name"]} percent amount is {percent}")
+        expenses = HouseHold.household_instance[0].household_dict["total_expenses"] / 10
+        for member in self.member_instances:
 
-        # member_amount = expenses * percent
-        # member_amount = str(member_amount) + " %"
-        # self.member_share_amount.configure(text=member_amount)
+            percent = member.member_dict["member_percent_raw"] / 100
+            expenses = round(expenses, 2)
+            calc = expenses * percent
+            calc_round = round(calc, 1)
+            calc_str = str(calc_round)
+            calc_str_mod = calc_str.replace(".", "")
+            calc_str_format = format_income_entry(calc_str_mod)
+            member.member_share_amount.configure(text=str(calc_str_format))
