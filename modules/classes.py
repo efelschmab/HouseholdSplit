@@ -1,3 +1,9 @@
+# To-Do:
+# limit number of expense entries
+# somehow restrict number input entry fields
+# make sure the total expenses get corrected if all expenses get removed
+# better placement for floating expense adding window
+
 import customtkinter as ctk
 import re
 from PIL import Image, ImageTk
@@ -22,6 +28,11 @@ def limit_characters(entry, limit):
     if len(value) > limit:
         entry.set(value[:limit])
 
+# def validate_numeric_input(entry_var):
+#     value = entry_var.get()
+#     if not value.isdigit():
+#         entry_var.set(''.join(filter(str.isdigit, value)))
+
 def trace_add(string_var, char_limit):
     string_var.trace_add("write", lambda *args: limit_characters(string_var, char_limit))
 
@@ -44,6 +55,7 @@ def format_income_entry(value):
     except ValueError as e:
         print(f"Error: {e}")
         return ""
+    
     
 class HouseHold():
 
@@ -163,8 +175,9 @@ class HouseHoldMember():
         self.member_dict = {"member_net_income": 0, 
                             "member_net_raw": 0, 
                             "household_member_name": "", 
-                            "member_percent_share": 0, 
-                            "member_percent_raw": 0}
+                            "member_percent_share": 0,
+                            "member_share_total": 0, 
+                            "member_percent_raw": 0,}
 
         self.income_dict = {}
         self.expense_entry_list = []
@@ -354,7 +367,9 @@ class HouseHoldMember():
                                           height=20,
                                           fg_color=entry_background,
                                           corner_radius=entry_round_corners,
-                                          text=f"{expense_name} {expense_ID}")
+                                          text=f"{expense_name}",
+                                          compound="left",
+                                          anchor="w")
         self.expense_name_field.grid(column=0,
                                 row=0,
                                 sticky="e")
@@ -385,8 +400,8 @@ class HouseHoldMember():
 
         def create_expense_widget():
             """Filling the expense entry dict for future use"""
-            self.expense_entry_dict["expense_name"] = expense_name_entry.get()
-            self.expense_entry_dict["expense_amount_raw"] = expense_value_entry.get()
+            self.expense_entry_dict["expense_name"] = self.expense_name_entry.get()
+            self.expense_entry_dict["expense_amount_raw"] = self.expense_value_entry.get()
             
             if self.optionmenu_value.get() == "monthly":
                 expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
@@ -411,9 +426,9 @@ class HouseHoldMember():
 
             expense_entry.destroy()
 
-        expense_name_entry_var = ctk.StringVar()
-        expense_name_entry = ctk.CTkEntry(master=expense_entry,
-                            textvariable=expense_name_entry_var,
+        self.expense_name_entry_var = ctk.StringVar()
+        self.expense_name_entry = ctk.CTkEntry(master=expense_entry,
+                            textvariable=self.expense_name_entry_var,
                             placeholder_text="EnterExpense",
                             font=("Roboto", 10),
                             corner_radius=0,
@@ -421,38 +436,52 @@ class HouseHoldMember():
                             text_color="white",
                             width=100,
                             fg_color=entry_background)
-        expense_name_entry.grid(pady=member_widget_pady, padx=member_widget_padx, column=0, row=0)
+        self.expense_name_entry.grid(pady=member_widget_pady, padx=member_widget_padx, column=0, row=0)
+
+        def on_expense_name_entry_confirm(expense_name_entry):
+            activate_entry(self.expense_value_entry)
+
+        create_lambda(on_expense_name_entry_confirm, self.expense_name_entry)
+        self.expense_name_entry.bind("<Return>", create_lambda(on_expense_name_entry_confirm, self.expense_name_entry))
 
         expense_name_character_limit = 12
-        trace_add(expense_name_entry_var, expense_name_character_limit)
+        trace_add(self.expense_name_entry_var, expense_name_character_limit)
         
-        expense_value_entry_var = ctk.StringVar()
-        expense_value_entry = ctk.CTkEntry(master=expense_entry,
-                            textvariable=expense_value_entry_var,
+        self.expense_value_entry_var = ctk.StringVar()
+        self.expense_value_entry = ctk.CTkEntry(master=expense_entry,
+                            textvariable=self.expense_value_entry_var,
                             placeholder_text="0,00",
                             font=("Roboto", 10),
                             corner_radius=0,
                             border_width=0,
                             width=60,
                             fg_color=entry_background,
-                            text_color=red)
-        expense_value_entry.grid(pady=member_widget_pady, padx=member_widget_padx, column=1, row=0)
+                            text_color=red,
+                            state="disabled")
+        self.expense_value_entry.grid(pady=member_widget_pady, padx=member_widget_padx, column=1, row=0)
+
+        def on_expense_value_entry_confirm(expense_value_entry):
+            activate_entry(self.optionmenu)
+
+        create_lambda(on_expense_value_entry_confirm, self.expense_value_entry)
+        self.expense_value_entry.bind("<Return>", create_lambda(on_expense_value_entry_confirm, self.expense_value_entry))
 
         expense_value_character_limit = 7
-        trace_add(expense_value_entry_var, expense_value_character_limit)
+        trace_add(self.expense_value_entry_var, expense_value_character_limit)
 
         def optionmenu_callback(choice):
             self.optionmenu_value.set(choice)
             activate_entry(self.confirm_btn)
 
         self.optionmenu_value = ctk.StringVar()
-        optionmenu = ctk.CTkOptionMenu(master=expense_entry,
+        self.optionmenu = ctk.CTkOptionMenu(master=expense_entry,
                                        values=["monthly", "yearly"],
                                        font=("Roboto", 10),
                                        width=60,
-                                       command=optionmenu_callback)
-        optionmenu.grid(padx=5, pady=5, row=0, column=2)
-        optionmenu.set("select cycle")
+                                       command=optionmenu_callback,
+                                       state="disabled")
+        self.optionmenu.grid(padx=5, pady=5, row=0, column=2)
+        self.optionmenu.set("select cycle")
 
         image_path = "./check.png"
         image = Image.open(image_path)
@@ -517,9 +546,8 @@ class HouseHoldMember():
 
             percent = member.member_dict["member_percent_raw"] / 100
             expenses = round(expenses, 2)
-            calc = expenses * percent
-            calc_round = round(calc, 1)
-            calc_str = str(calc_round)
-            calc_str_mod = calc_str.replace(".", "")
-            calc_str_format = format_income_entry(calc_str_mod)
-            member.member_share_amount.configure(text=str(calc_str_format))
+            member_amount = expenses * percent
+            member_amount = round(member_amount, 1)
+            member_amount = format_income_entry(str(member_amount).replace(".", ""))
+            member.member_share_amount.configure(text=str(member_amount))
+            member.member_dict["member_share_total"] = member_amount
