@@ -82,6 +82,8 @@ class HouseHold():
 
         self.household_dict = household_dict
 
+        household_dict["total_expenses"] = 0
+
         HouseHold.household_instance.append(self)
 
     def hh_name_entry_widget(self, master_frame):
@@ -161,28 +163,26 @@ class HouseHold():
         self.total_shared_expenses_lbl.grid(columnspan=3, padx=0, pady=0)
 
     def conclusion(self, master_frame):
-        self.conclusion_label = ctk.CTkLabel(master=master_frame, fg_color=background, text="testtext",
-                                             text_color="white", font=("Roboto", 12), width=430, wraplength=400)
+        self.conclusion_label = ctk.CTkLabel(master=master_frame, fg_color=background, text=" ",
+                                             text_color="white", font=("Roboto", 16), width=430, wraplength=400)
         self.conclusion_label.grid()
 
     def update_conclusion(self):
         if self.household_instance[0].household_dict["total_expenses"] > 0:
             member_1_name = HouseHoldMember.member_instances[0].member_dict["household_member_name"]
             member_1_share = HouseHoldMember.member_instances[0].member_dict["member_share_total"]
-            member_1_share = member_1_share.replace(".", "").replace(",", "")
+            member_1_share = str(member_1_share).replace(
+                ".", "").replace(",", "")
 
             member_2_name = HouseHoldMember.member_instances[1].member_dict["household_member_name"]
             member_2_share = HouseHoldMember.member_instances[1].member_dict["member_share_total"]
-            member_2_share = member_2_share.replace(".", "").replace(",", "")
+            member_2_share = str(member_2_share).replace(
+                ".", "").replace(",", "")
 
             member_1_total_expenses = HouseHoldMember.member_instances[
                 0].member_dict["member_total_expenses"]
             member_2_total_expenses = HouseHoldMember.member_instances[
                 1].member_dict["member_total_expenses"]
-            print(f"member_1 share total is {
-                  member_1_share}, expense total is {member_1_total_expenses}")
-            print(f"member_2 share total is {
-                  member_2_share}, expense total is {member_2_total_expenses}")
 
             member_1_split_calc = int(member_1_share) - member_1_total_expenses
             member_2_split_calc = int(member_2_share) - member_2_total_expenses
@@ -192,22 +192,24 @@ class HouseHold():
             member_2_split_format = format_income_entry(
                 str(member_2_split_calc))
 
-            if member_1_total_expenses > member_2_total_expenses:
+            if member_1_share == 0:
+                label_string = f"{member_1_name} has no income, {member_2_name} has to pay the expenses of {
+                    self.household_instance[0].household_dict["total_expenses"]}"
+            elif member_2_share == 0:
+                label_string = f"{member_2_name} has no income, {member_1_name} has to pay the expenses of {
+                    self.household_instance[0].household_dict["total_expenses"]}"
+            elif member_1_total_expenses > member_2_total_expenses:
                 label_string = f"{member_2_name} needs to pay {
-                    member_1_name} {member_1_split_format}"
-                self.conclusion_label.configure(text=label_string)
-
-            if member_2_total_expenses > member_1_total_expenses:
+                    member_1_name} {member_1_split_format} per month"
+            elif member_2_total_expenses > member_1_total_expenses:
                 label_string = f"{member_1_name} needs to pay {
-                    member_2_name} {member_2_split_format}"
-                self.conclusion_label.configure(text=label_string)
-
+                    member_2_name} {member_2_split_format} per month"
             else:
                 label_string = "Share and expenses are perfectly equal, crazy!"
 
+            self.conclusion_label.configure(text=label_string)
         else:
-            self.conclusion_label.configure(
-                text="it also worked, but it's empty worked")
+            self.conclusion_label.configure(text=" ")
 
 
 class HouseHoldMember():
@@ -277,7 +279,13 @@ class HouseHoldMember():
         def on_name_entry_confirm(memb_name_entry):
             self.MembName = memb_name_entry.get()
             activate_entry(self.mtly_net_entry)
+            for member in self.member_instances:
+                member.member_dict["household_member_name"] = self.MembName
             print("the household member name is " + self.MembName)
+
+            self.calculate_member_percent_amount()
+            self.calculate_combined_total_expenses()
+            HouseHold.update_conclusion(HouseHold.household_instance[0])
 
         create_lambda(on_name_entry_confirm, self.memb_name_entry)
         self.memb_name_entry.bind("<Return>", create_lambda(
@@ -331,22 +339,26 @@ class HouseHoldMember():
             activate_entry(self.add_expense_btn)
 
             print(f"the combined total net income is: {self.total_net}")
-            if all(value != 0 for value in self.income_dict.values()):
-                for member in self.member_instances:
-                    percent_number = str(round(self.calculate_member_percent_share(
-                        input=member.mtly_net_unformatted), 2)) + "%"
-                    member.member_dict["member_percent_raw"] = round(
-                        self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)
-                    member.percent_of_net_widget.configure(text=percent_number)
-                    member.member_share_percent.configure(text=percent_number)
-                    """filling the member dictionary"""
-                    member.member_dict["member_percent_share"] = percent_number
-                    member.member_dict["member_net_income"] = member.formatted_net
-                    member.member_dict["member_net_raw"] = member.mtly_net_unformatted
-                    member.member_dict["household_member_name"] = member.MembName
+            for member in self.member_instances:
+                percent_number = str(round(self.calculate_member_percent_share(
+                    input=member.mtly_net_unformatted), 2)) + "%"
+                member.member_dict["member_percent_raw"] = round(
+                    self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)
+                member.percent_of_net_widget.configure(text=percent_number)
+                member.member_share_percent.configure(text=percent_number)
 
-                    print(f"{member.MembName} dictionary:{
-                          member.member_dict} ")
+                """filling the member dictionary"""
+                member.member_dict["member_percent_share"] = percent_number
+                member.member_dict["member_net_income"] = member.formatted_net
+                member.member_dict["member_net_raw"] = member.mtly_net_unformatted
+                member.member_dict["household_member_name"] = member.MembName
+
+                print(f"{member.MembName} dictionary:{
+                    member.member_dict} ")
+
+            self.calculate_member_percent_amount()
+            self.calculate_combined_total_expenses()
+            HouseHold.update_conclusion(HouseHold.household_instance[0])
 
         create_lambda(on_income_entry_confirm, self.mtly_net_entry)
         self.mtly_net_entry.bind("<Return>", create_lambda(
@@ -360,6 +372,8 @@ class HouseHoldMember():
         self.percent_of_net_widget.grid(row=0, column=column, sticky="n")
 
     def calculate_member_percent_share(self, input):
+        if self.total_net_unformatted == 0:
+            return 0
         percent_share = (int(input) / self.total_net_unformatted) * 100
         return percent_share
 
@@ -415,6 +429,9 @@ class HouseHoldMember():
                 if entry["ID"] == widget_ID:
                     self.expense_entry_list.remove(entry)
                     break
+
+            print(f"this is now the expense entry list: {
+                  self.expense_entry_list}")
 
             self.calculate_total_expenses()
             self.calculate_combined_total_expenses()
@@ -624,7 +641,12 @@ class HouseHoldMember():
         total = 0
         for expense in combined_expense_list:
             total = int(total) + int(expense["expense_amount_raw"])
-            total_raw = total
+            total_raw = total if total is not None else 0
+
+        if combined_expense_list == []:
+            total_raw = 0
+            total = 0
+
         total = format_income_entry(str(total))
         HouseHold.household_instance[0].household_dict["total_expenses"] = total_raw
         HouseHold.household_instance[0].total_shared_expenses_lbl.configure(
@@ -646,12 +668,14 @@ class HouseHoldMember():
     def calculate_member_percent_amount(self):
         expenses = HouseHold.household_instance[0].household_dict["total_expenses"] / 10
         for member in self.member_instances:
-
-            percent = member.member_dict["member_percent_raw"] / 100
-            expenses = round(expenses, 2)
-            member_amount = expenses * percent
-            member_amount = round(member_amount, 1)
-            member_amount = format_income_entry(
-                str(member_amount).replace(".", ""))
+            if member.member_dict["member_percent_raw"] == 0.0:
+                member_amount = 0
+            else:
+                percent = member.member_dict["member_percent_raw"] / 100
+                expenses = round(expenses, 2)
+                member_amount = expenses * percent
+                member_amount = round(member_amount, 1)
+                member_amount = format_income_entry(
+                    str(member_amount).replace(".", ""))
             member.member_share_amount.configure(text=str(member_amount))
             member.member_dict["member_share_total"] = member_amount

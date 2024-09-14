@@ -134,7 +134,7 @@ memb_1_add_expense = memb_obj_1.add_expense_widget_frame(
 divider_line_vertical_widget = household_obj.divider_line_vertical(master_frame=expenses_base_frame,
                                                                    column=1,
                                                                    row=0,
-                                                                   height=300)
+                                                                   height=380)
 
 member_2_expenses_frame = ctk.CTkFrame(master=expenses_base_frame,
                                        width=200,
@@ -203,7 +203,7 @@ divider_line_horizontal_widget = household_obj.divider_line_horizontal(
 """Conclusion"""
 
 conclusion_frame = ctk.CTkFrame(master=window, fg_color=classes.background)
-conclusion_frame.grid(row=16, columnspan=3)
+conclusion_frame.grid(row=16, columnspan=3, pady=10)
 
 household_conclusion_text = household_obj.conclusion(
     master_frame=conclusion_frame)
