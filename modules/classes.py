@@ -1,12 +1,15 @@
 # To-Do:
-# limit number of expense entries
 # somehow restrict number input entry fields
-# make sure the total expenses get corrected if all expenses get removed
 # better placement for floating expense adding window
+# if total spent > total income -> warning
+# update_conclusion if statements need to be refined
 
+from turtle import back
 import customtkinter as ctk
 import re
 from PIL import Image, ImageTk
+
+from . import database_logic
 
 """Some variables for general use"""
 green = "#15ce27"
@@ -82,7 +85,9 @@ class HouseHold():
 
         self.household_dict = household_dict
 
-        household_dict["total_expenses"] = 0
+        self.household_dict["total_expenses"] = 0
+        self.household_dict["household_name"] = ""
+        self.household_dict["net_income"] = ""
 
         HouseHold.household_instance.append(self)
 
@@ -110,10 +115,12 @@ class HouseHold():
 
         def on_name_entry_confirm(hh_name_entry):
             self.HouseHoldName = hh_name_entry.get()
-            self.household_dict["Household name"] = self.HouseHoldName
+            self.household_dict["household_name"] = self.HouseHoldName
             activate_entry(HouseHoldMember.member_instances[0].memb_name_entry)
             print(self.household_dict)
             print(f"the new household name is {self.HouseHoldName}")
+            database_logic.write_to_database(
+                entry=self.household_dict["household_name"], table="household", column="household_name")
 
         def create_lambda(hh_name_entry):
             return lambda event: on_name_entry_confirm(hh_name_entry)
@@ -331,7 +338,7 @@ class HouseHoldMember():
             self.total_net_unformatted = self.total_net
             self.total_net = format_income_entry(str(self.total_net))
 
-            HouseHold.household_instance[0].household_dict["Net income"] = self.total_net
+            HouseHold.household_instance[0].household_dict["net_income"] = self.total_net
             HouseHold.household_instance[0].household_net_number.configure(
                 text=self.total_net)
 
@@ -406,9 +413,9 @@ class HouseHoldMember():
         expense_ID = self.next_expense_id
 
         expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
-                                           fg_color=entry_background,
+                                           fg_color=background,
                                            width=200,
-                                           corner_radius=entry_round_corners)
+                                           corner_radius=0)
         expense_field_frame.grid(columnspan=3,
                                  row=self.expense_row,
                                  pady=member_widget_pady,
@@ -429,9 +436,6 @@ class HouseHoldMember():
                 if entry["ID"] == widget_ID:
                     self.expense_entry_list.remove(entry)
                     break
-
-            print(f"this is now the expense entry list: {
-                  self.expense_entry_list}")
 
             self.calculate_total_expenses()
             self.calculate_combined_total_expenses()
@@ -454,15 +458,15 @@ class HouseHoldMember():
         name_and_amount_frame = ctk.CTkFrame(master=expense_field_frame,
                                              width=150,
                                              height=20,
-                                             fg_color=entry_background,
-                                             corner_radius=entry_round_corners)
+                                             fg_color=background,
+                                             corner_radius=0)
         name_and_amount_frame.grid(column=1, row=0)
 
         self.expense_name_field = ctk.CTkLabel(master=name_and_amount_frame,
                                                width=100,
                                                height=20,
-                                               fg_color=entry_background,
-                                               corner_radius=entry_round_corners,
+                                               fg_color=background,
+                                               corner_radius=0,
                                                text=f"{expense_name}",
                                                compound="left",
                                                anchor="w")
@@ -472,64 +476,69 @@ class HouseHoldMember():
 
         expense_amount_field = ctk.CTkLabel(master=name_and_amount_frame,
                                             width=60,
-                                            fg_color=entry_background,
-                                            corner_radius=entry_round_corners,
+                                            fg_color=background,
+                                            height=20,
+                                            corner_radius=0,
+                                            compound="right",
+                                            anchor="e",
                                             text=expense_value)
         expense_amount_field.grid(column=1,
-                                  row=0)
+                                  row=0,
+                                  sticky="e")
 
         self.expense_row += 1
 
     def floating_expense_entry(self):
 
-        expense_entry = ctk.CTkToplevel()
-        expense_entry.geometry("310x40+200+200")
-        expense_entry.overrideredirect(True)
-        expense_entry.attributes("-topmost", True)
-        expense_entry.configure(fg_color=background)
+        if len(self.expense_entry_list) <= 7:
+            expense_entry = ctk.CTkToplevel()
+            expense_entry.geometry("310x40+200+200")
+            expense_entry.overrideredirect(True)
+            expense_entry.attributes("-topmost", True)
+            expense_entry.configure(fg_color=background)
 
-        self.expense_entry_dict = {}
-        self.expense_entry_dict["expense_name"] = ""
-        self.expense_entry_dict["expense_amount_raw"] = ""
-        self.expense_entry_dict["expense_amount_formatted"] = ""
-        self.expense_entry_dict["ID"] = self.next_expense_id
+            self.expense_entry_dict = {}
+            self.expense_entry_dict["expense_name"] = ""
+            self.expense_entry_dict["expense_amount_raw"] = ""
+            self.expense_entry_dict["expense_amount_formatted"] = ""
+            self.expense_entry_dict["ID"] = self.next_expense_id
 
-        def create_expense_widget():
-            """Filling the expense entry dict for future use"""
-            self.expense_entry_dict["expense_name"] = self.expense_name_entry.get(
-            )
-            self.expense_entry_dict["expense_amount_raw"] = self.expense_value_entry.get(
-            )
+            def create_expense_widget():
+                """Filling the expense entry dict for future use"""
+                self.expense_entry_dict["expense_name"] = self.expense_name_entry.get(
+                )
+                self.expense_entry_dict["expense_amount_raw"] = self.expense_value_entry.get(
+                )
 
-            if self.optionmenu_value.get() == "monthly":
-                expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
-            else:
-                expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
-                expense_widget_amount = expense_widget_amount[:-
-                                                              2] + "." + expense_widget_amount[-2:]
-                expense_widget_amount = float(expense_widget_amount) / 12
-                amount_numbers = len(
-                    self.expense_entry_dict["expense_amount_raw"])
-                self.expense_entry_dict["expense_amount_raw"] = str(
-                    expense_widget_amount)[:amount_numbers].replace(".", "")
-                expense_widget_amount = round(expense_widget_amount, 2)
-                expense_widget_amount = str(
-                    expense_widget_amount).replace(".", "")
+                if self.optionmenu_value.get() == "monthly":
+                    expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
+                else:
+                    expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
+                    expense_widget_amount = expense_widget_amount[:-
+                                                                  2] + "." + expense_widget_amount[-2:]
+                    expense_widget_amount = float(expense_widget_amount) / 12
+                    amount_numbers = len(
+                        self.expense_entry_dict["expense_amount_raw"])
+                    self.expense_entry_dict["expense_amount_raw"] = str(
+                        expense_widget_amount)[:amount_numbers].replace(".", "")
+                    expense_widget_amount = round(expense_widget_amount, 2)
+                    expense_widget_amount = str(
+                        expense_widget_amount).replace(".", "")
 
-            self.expense_entry_dict["expense_amount_formatted"] = format_income_entry(
-                expense_widget_amount)
-            self.expense_entry_list.append(self.expense_entry_dict)
+                self.expense_entry_dict["expense_amount_formatted"] = format_income_entry(
+                    expense_widget_amount)
+                self.expense_entry_list.append(self.expense_entry_dict)
 
-            self.add_expenses(expense_name=self.expense_entry_dict["expense_name"],
-                              expense_value=self.expense_entry_dict["expense_amount_formatted"])
-            self.calculate_total_expenses()
-            self.calculate_combined_total_expenses()
-            self.calculate_member_percent_amount()
-            HouseHold.update_conclusion(HouseHold.household_instance[0])
+                self.add_expenses(expense_name=self.expense_entry_dict["expense_name"],
+                                  expense_value=self.expense_entry_dict["expense_amount_formatted"])
+                self.calculate_total_expenses()
+                self.calculate_combined_total_expenses()
+                self.calculate_member_percent_amount()
+                HouseHold.update_conclusion(HouseHold.household_instance[0])
 
-            self.next_expense_id += 1
+                self.next_expense_id += 1
 
-            expense_entry.destroy()
+                expense_entry.destroy()
 
         self.expense_name_entry_var = ctk.StringVar()
         self.expense_name_entry = ctk.CTkEntry(master=expense_entry,
@@ -551,7 +560,7 @@ class HouseHoldMember():
         self.expense_name_entry.bind("<Return>", create_lambda(
             on_expense_name_entry_confirm, self.expense_name_entry))
 
-        expense_name_character_limit = 12
+        expense_name_character_limit = 10
         trace_add(self.expense_name_entry_var, expense_name_character_limit)
 
         self.expense_value_entry_var = ctk.StringVar()
@@ -575,7 +584,7 @@ class HouseHoldMember():
         self.expense_value_entry.bind("<Return>", create_lambda(
             on_expense_value_entry_confirm, self.expense_value_entry))
 
-        expense_value_character_limit = 7
+        expense_value_character_limit = 6
         trace_add(self.expense_value_entry_var, expense_value_character_limit)
 
         def optionmenu_callback(choice):
