@@ -6,13 +6,15 @@ conn = sqlite3.connect(db_file)
 cursor = conn.cursor()
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS household (
-    household_name TEXT PRIMARY KEY UNIQUE,
+    household_ID INTEGER PRIMARY KEY,
+    household_name TEXT,
     net_income TEXT,
     total_expenses INTEGER
 )''')
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS household_member (
-    household_member_name TEXT PRIMARY KEY,
+    household_member_ID INTEGER PRIMARY KEY,
+    household_member_name TEXT,
     member_net_income TEXT,
     member_net_raw INTEGER,
     member_percent_share TEXT,
@@ -22,24 +24,51 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS household_member (
 )''')
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS expense_entry (
-    ID TEXT PRIMARY KEY,
-    expense_name TEXT,
-    expense_amount_raw INTEGER,
-    expense_amount_formatted TEXT,
-    household_name TEXT REFERENCES household_member(household_member_name)
-)''')
+  unique_identifier TEXT UNIQUE,
+  ID INTEGER PRIMARY KEY AUTOINCREMENT,
+  expense_name TEXT,
+  expense_amount_raw INTEGER,
+  expense_amount_formatted TEXT,
+  household_member_ID INTEGER REFERENCES household_member(household_member_ID)
+);''')
 
 
-def write_to_database(entry, table, column):
-    """Writes a given entry to a specified table and column in the database, replacing existing entries."""
+def write_to_database(data, table, condition=None, replace_existing=True):
+    """Writes a given dictionary of data to a specified table, updating existing entries based on the provided condition.
+
+    Args:
+        data (dict): A dictionary containing the column names and their corresponding values.
+        table (str): The name of the table to insert or update.
+        condition (str, optional): A condition to filter rows for updates. Defaults to None.
+        replace_existing (bool, optional): Whether to replace the existing row if it exists. Defaults to True.
+    """
     try:
-        cursor.execute(
-            f"REPLACE INTO {table} ({column}) VALUES (?)", (entry,)
-        )
+        columns = ", ".join(data.keys())
+        values = ", ".join(["?" for _ in data.values()])
+
+        if condition:
+            sql = f"UPDATE {table} SET {columns} = {values} WHERE {condition}"
+        else:
+            if replace_existing:
+                sql = f"REPLACE INTO {table} ({columns}) VALUES ({values})"
+            else:
+                sql = f"INSERT INTO {table} ({columns}) VALUES ({values})"
+
+        if table == "expense_entry" and "household_member_ID" not in data:
+            raise ValueError("Missing household_member_ID for expense entry")
+
+        cursor.execute(sql, tuple(data.values()))
         conn.commit()
         print("Entry inserted or updated successfully.")
     except sqlite3.Error as e:
         print(f"Error inserting or updating data: {e}")
+
+
+def delete_expense(unique_identifier):
+    sql = "DELETE FROM expense_entry WHERE unique_identifier = ?"
+    cursor.execute(sql, (unique_identifier,))
+    conn.commit()
+    print("Expense deleted successfully.")
 
 
 if __name__ == "__main__":
