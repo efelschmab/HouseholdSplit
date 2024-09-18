@@ -23,13 +23,14 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS household_member (
     member_total_expenses INTEGER
 )''')
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS expense_entry (
-  unique_identifier TEXT UNIQUE,
-  ID INTEGER PRIMARY KEY AUTOINCREMENT,
-  expense_name TEXT,
-  expense_amount_raw INTEGER,
-  expense_amount_formatted TEXT,
-  household_member_ID INTEGER REFERENCES household_member(household_member_ID)
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS expense_entry (
+    unique_identifier TEXT PRIMARY KEY,
+    ID INTEGER,
+    expense_name TEXT,
+    expense_amount_raw INTEGER,
+    expense_amount_formatted TEXT,
+    household_member_ID INTEGER REFERENCES household_member(household_member_ID)
 );''')
 
 
@@ -50,7 +51,8 @@ def write_to_database(data, table, condition=None, replace_existing=True):
             sql = f"UPDATE {table} SET {columns} = {values} WHERE {condition}"
         else:
             if replace_existing:
-                sql = f"REPLACE INTO {table} ({columns}) VALUES ({values})"
+                sql = f"INSERT OR REPLACE INTO {
+                    table} ({columns}) VALUES ({values})"
             else:
                 sql = f"INSERT INTO {table} ({columns}) VALUES ({values})"
 
@@ -69,6 +71,33 @@ def delete_expense(unique_identifier):
     cursor.execute(sql, (unique_identifier,))
     conn.commit()
     print("Expense deleted successfully.")
+
+
+def fetch_from_database(table, columns="*", condition=None):
+    """Fetches data from a specified table based on the given condition.
+
+    Args:
+    table (str): The name of the table to fetch data from.
+    columns (str or list, optional): The columns to fetch. Defaults to "*".
+    condition (str, optional): A condition to filter rows. Defaults to None.
+
+    Returns:
+    list: A list of tuples containing the fetched rows.
+    """
+    try:
+        if isinstance(columns, list):
+            columns = ", ".join(columns)
+
+            sql = f"SELECT {columns} FROM {table}"
+            if condition:
+                sql += f" WHERE {condition}"
+
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+        return rows
+    except sqlite3.Error as e:
+        print(f"Error fetching data: {e}")
+        return []
 
 
 if __name__ == "__main__":
