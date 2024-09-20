@@ -714,3 +714,72 @@ class HouseHoldMember():
             member.member_dict["member_share_total"] = member_amount
             database_logic.write_to_database(
                 data=member.member_dict, table="household_member")
+
+
+def fill_from_database():
+    """If there already is a filled database, the entries are fetched and inserted in the GUI"""
+    entries = database_logic.fetch_from_database(
+        # type: ignore
+        "household", ["household_name", "net_income", "total_expenses"])
+    if entries is not None:
+        household_db = entries[0]
+        member_db = database_logic.fetch_from_database("household_member", ["household_member_ID", "household_member_name", "member_net_income",
+                                                                            "member_net_raw", "member_percent_share", "member_share_total", "member_percent_raw", "member_total_expenses"])  # type: ignore
+        expense_entries_db = database_logic.fetch_from_database("expense_entry", [
+                                                                "ID", "expense_name", "expense_amount_raw", "expense_amount_formatted", "household_member_ID"])  # type: ignore
+
+        member_1_entries = []
+        member_2_entries = []
+
+        for entry in expense_entries_db:
+            if entry[4] == 1:
+                member_1_entries.append(entry)
+            else:
+                member_2_entries.append(entry)
+
+        household = HouseHold.household_instance[0]
+        household.household_dict["total_expenses"] = household_db[2]
+
+        household.household_dict["household_name"] = household_db[0]
+        household.hh_name_entry.insert(0, household_db[0])
+
+        household.household_dict["net_income"] = household_db[1]
+        household.household_net_number.configure(text=household_db[1])
+
+        for member in HouseHoldMember.member_instances:
+            if member.member_dict["household_member_ID"] == 1:
+                index = 0
+                member_expense_entries = member_1_entries
+            else:
+                index = 1
+                member_expense_entries = member_2_entries
+
+            member.member_dict["member_net_income"] = member_db[index][2]
+            member.mtly_net_entry.configure(state="normal")
+            member.mtly_net_entry.insert(0, member_db[index][2])
+
+            member.member_dict["member_net_raw"] = member_db[index][3]
+
+            member.member_dict["household_member_name"] = member_db[index][1]
+            member.memb_name_entry.configure(state="normal")
+            member.memb_name_entry.insert(0, member_db[index][1])
+            member.member_dict["member_percent_share"] = member_db[index][4]
+            member.percent_of_net_widget.configure(text=member_db[index][4])
+            member.member_share_percent .configure(text=member_db[index][4])
+
+            member.member_dict["member_share_total"] = member_db[index][5]
+            member.member_dict["member_percent_raw"] = member_db[index][6]
+            member.member_dict["member_total_expenses"] = member_db[index][7]
+
+            member.calculate_member_percent_amount()
+            member.calculate_total_expenses()
+            member.calculate_combined_total_expenses()
+
+            print(member_expense_entries)
+
+            for entry in member_expense_entries:
+                member.add_expenses(expense_name=entry[1],
+                                    expense_value=entry[3])
+                # entry.expense_ID = entry[0] yes yes
+
+    HouseHold.update_conclusion(HouseHold.household_instance[0])
