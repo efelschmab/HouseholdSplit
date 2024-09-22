@@ -7,6 +7,9 @@
 import customtkinter as ctk
 import re
 from PIL import Image, ImageTk
+import uuid
+
+from . import database_logic
 
 """Some variables for general use"""
 green = "#15ce27"
@@ -55,7 +58,7 @@ def format_income_entry(value):
         else:
             value = '0.' + value.zfill(2)
             value = float(value)
-            print(f"Float value: {value}")
+            # print(f"Float value: {value}")
         formatted_value = f"{value:,.2f}".replace(
             ',', 'X').replace('.', ',').replace('X', '.')
         return formatted_value
@@ -69,20 +72,14 @@ class HouseHold():
     household_instance = []
 
     def __init__(self,
-                 HouseHoldName=None,
-                 HouseHoldNet=None,
-                 HouseHoldShared=None,
-                 household_net_number=None,
-                 household_dict={}):
+                 household_net_number=None):
 
-        self.HouseHoldName = HouseHoldName
-        self.HouseHoldNet = HouseHoldNet
-        self.HouseHoldShared = HouseHoldShared
         self.household_net_number = household_net_number
 
-        self.household_dict = household_dict
-
-        household_dict["total_expenses"] = 0
+        self.household_dict = {"total_expenses": 0,
+                               "household_name": "",
+                               "household_ID": 1,
+                               "household_net_income": 0}  # type: ignore
 
         HouseHold.household_instance.append(self)
 
@@ -109,11 +106,13 @@ class HouseHold():
             "write", lambda *args: limit_characters(text_var, character_limit))
 
         def on_name_entry_confirm(hh_name_entry):
-            self.HouseHoldName = hh_name_entry.get()
-            self.household_dict["Household name"] = self.HouseHoldName
+            self.household_dict["household_name"] = hh_name_entry.get()
             activate_entry(HouseHoldMember.member_instances[0].memb_name_entry)
             print(self.household_dict)
-            print(f"the new household name is {self.HouseHoldName}")
+            print(f"the new household name is {
+                  self.household_dict["household_name"]}")
+            database_logic.write_to_database(
+                data=HouseHold.household_instance[0].household_dict, table="household")
 
         def create_lambda(hh_name_entry):
             return lambda event: on_name_entry_confirm(hh_name_entry)
@@ -184,6 +183,10 @@ class HouseHold():
             member_2_total_expenses = HouseHoldMember.member_instances[
                 1].member_dict["member_total_expenses"]
 
+            for member in HouseHoldMember.member_instances:
+                database_logic.write_to_database(
+                    data=member.member_dict, table="household_member")
+
             member_1_split_calc = int(member_1_share) - member_1_total_expenses
             member_2_split_calc = int(member_2_share) - member_2_total_expenses
 
@@ -215,25 +218,15 @@ class HouseHold():
 class HouseHoldMember():
 
     member_instances = []
+    member_id_counter = 0
 
     def __init__(self,
-                 MembName=None,
-                 MtlyNet=0,
-                 NetPercent=None,
-                 ExpenseTotal=None,
-                 MembShare=None,
                  percent_of_net_widget=None):
 
-        self.MembName = MembName
-        self.MtlyNet = MtlyNet
-        self.NetPercent = NetPercent
-        self.ExpenseTotal = ExpenseTotal
-        self.MembShare = MembShare
         self.total_net = 0
         self.percent_of_net_widget = percent_of_net_widget
         self.mtly_net_unformatted = 0
         self.total_net_unformatted = 0
-        self.formatted_net = 0
 
         self.member_dict = {"member_net_income": 0,
                             "member_net_raw": 0,
@@ -251,6 +244,9 @@ class HouseHoldMember():
         self.expense_widget_list = []
 
         HouseHoldMember.member_instances.append(self)
+
+        HouseHoldMember.member_id_counter += 1
+        self.member_dict["household_member_ID"] = HouseHoldMember.member_id_counter
 
     def memb_name_entry_widget(self, master_frame):
         """Name entry for household member"""
@@ -277,11 +273,13 @@ class HouseHoldMember():
         trace_add(memb_name_var, name_character_limit)
 
         def on_name_entry_confirm(memb_name_entry):
-            self.MembName = memb_name_entry.get()
+            self.member_dict["household_member_name"] = memb_name_entry.get()
             activate_entry(self.mtly_net_entry)
+            print("the household member name is " +
+                  self.member_dict["household_member_name"])
             for member in self.member_instances:
-                member.member_dict["household_member_name"] = self.MembName
-            print("the household member name is " + self.MembName)
+                database_logic.write_to_database(
+                    data=member.member_dict, table="household_member")
 
             self.calculate_member_percent_amount()
             self.calculate_combined_total_expenses()
@@ -311,50 +309,39 @@ class HouseHoldMember():
         trace_add(mtly_net_var, income_character_limit)
 
         def on_income_entry_confirm(mtly_net_entry):
-            self.MtlyNet = mtly_net_entry.get()
-            self.mtly_net_unformatted = self.MtlyNet.replace(
+            self.member_dict["member_net_raw"] = mtly_net_entry.get()
+            self.member_dict["member_net_raw"] = self.member_dict["member_net_raw"].replace(
                 ".", "").replace(",", "")
 
             for i, member in enumerate(self.member_instances):
                 self.income_dict[f"member_{i}"] = int(
-                    member.mtly_net_unformatted)
+                    member.member_dict["member_net_raw"])
 
-            """format input, format it and put it back onto the label"""
-            self.formatted_net = format_income_entry(self.MtlyNet)
+            self.member_dict["member_net_income"] = format_income_entry(
+                self.member_dict["member_net_raw"])
             self.mtly_net_entry.delete(0, 'end')
-            self.mtly_net_entry.insert(0, str(self.formatted_net))
-            print(str(self.MembName) + " monthly net income is " +
-                  str(self.formatted_net))
+            self.mtly_net_entry.insert(
+                0, str(self.member_dict["member_net_income"]))
+            print(str(self.member_dict["household_member_name"]) + " monthly net income is " +
+                  str(self.member_dict["member_net_income"]))
 
             """this is for calculating the combined household net"""
             self.total_net = sum(self.income_dict.values())
             self.total_net_unformatted = self.total_net
             self.total_net = format_income_entry(str(self.total_net))
 
-            HouseHold.household_instance[0].household_dict["Net income"] = self.total_net
+            HouseHold.household_instance[0].household_dict["household_net_income"] = self.total_net
             HouseHold.household_instance[0].household_net_number.configure(
                 text=self.total_net)
+
+            database_logic.write_to_database(
+                data=HouseHold.household_instance[0].household_dict, table="household")
 
             activate_entry(self.member_instances[1].memb_name_entry)
             activate_entry(self.add_expense_btn)
 
             print(f"the combined total net income is: {self.total_net}")
-            for member in self.member_instances:
-                percent_number = str(round(self.calculate_member_percent_share(
-                    input=member.mtly_net_unformatted), 2)) + "%"
-                member.member_dict["member_percent_raw"] = round(
-                    self.calculate_member_percent_share(input=member.mtly_net_unformatted), 2)
-                member.percent_of_net_widget.configure(text=percent_number)
-                member.member_share_percent.configure(text=percent_number)
-
-                """filling the member dictionary"""
-                member.member_dict["member_percent_share"] = percent_number
-                member.member_dict["member_net_income"] = member.formatted_net
-                member.member_dict["member_net_raw"] = member.mtly_net_unformatted
-                member.member_dict["household_member_name"] = member.MembName
-
-                print(f"{member.MembName} dictionary:{
-                    member.member_dict} ")
+            self.member_percent_on_widgets()
 
             self.calculate_member_percent_amount()
             self.calculate_combined_total_expenses()
@@ -363,6 +350,22 @@ class HouseHoldMember():
         create_lambda(on_income_entry_confirm, self.mtly_net_entry)
         self.mtly_net_entry.bind("<Return>", create_lambda(
             on_income_entry_confirm, self.mtly_net_entry))
+
+    def member_percent_on_widgets(self):
+        """getting the % values back on the necessary GUI labels"""
+        for member in self.member_instances:
+            percent_number = str(round(self.calculate_member_percent_share(
+                input=member.member_dict["member_net_raw"]), 2)) + "%"
+            member.member_dict["member_percent_raw"] = round(
+                self.calculate_member_percent_share(input=member.member_dict["member_net_raw"]), 2)
+            member.percent_of_net_widget.configure(text=percent_number)
+            member.member_share_percent.configure(text=percent_number)
+            member.member_dict["member_percent_share"] = percent_number
+            database_logic.write_to_database(
+                data=member.member_dict, table="household_member")
+
+            print(f"{member.member_dict["household_member_name"]} dictionary:{
+                member.member_dict} ")
 
     def member_percent_of_net(self, master_frame, column):
         self.percent_of_net_widget = ctk.CTkLabel(master=master_frame,
@@ -415,6 +418,7 @@ class HouseHoldMember():
                                  padx=member_widget_padx)
 
         self.expense_widget_list.append((expense_ID, expense_field_frame))
+        print(self.expense_widget_list)
 
         def remove_expense_btn(widget_ID=expense_ID):
             for id, frame in self.expense_widget_list:
@@ -432,6 +436,8 @@ class HouseHoldMember():
 
             print(f"this is now the expense entry list: {
                   self.expense_entry_list}")
+
+            database_logic.delete_expense(widget_ID)
 
             self.calculate_total_expenses()
             self.calculate_combined_total_expenses()
@@ -482,67 +488,72 @@ class HouseHoldMember():
 
     def floating_expense_entry(self):
 
-        expense_entry = ctk.CTkToplevel()
-        expense_entry.geometry("310x40+200+200")
-        expense_entry.overrideredirect(True)
-        expense_entry.attributes("-topmost", True)
-        expense_entry.configure(fg_color=background)
+        if len(self.expense_entry_list) <= 7:
+            expense_entry = ctk.CTkToplevel()
+            expense_entry.geometry("310x40+200+200")
+            expense_entry.overrideredirect(True)
+            expense_entry.attributes("-topmost", True)
+            expense_entry.configure(fg_color=background)
 
-        self.expense_entry_dict = {}
-        self.expense_entry_dict["expense_name"] = ""
-        self.expense_entry_dict["expense_amount_raw"] = ""
-        self.expense_entry_dict["expense_amount_formatted"] = ""
-        self.expense_entry_dict["ID"] = self.next_expense_id
+            unique_identifier = str(uuid.uuid4())
 
-        def create_expense_widget():
-            """Filling the expense entry dict for future use"""
-            self.expense_entry_dict["expense_name"] = self.expense_name_entry.get(
-            )
-            self.expense_entry_dict["expense_amount_raw"] = self.expense_value_entry.get(
-            )
+            self.expense_entry_dict = {}
+            self.expense_entry_dict["expense_name"] = ""
+            self.expense_entry_dict["expense_amount_raw"] = ""
+            self.expense_entry_dict["expense_amount_formatted"] = ""
+            self.expense_entry_dict["unique_identifier"] = unique_identifier
+            self.expense_entry_dict["ID"] = self.next_expense_id
+            self.expense_entry_dict["household_member_ID"] = self.member_dict["household_member_ID"]
 
-            if self.optionmenu_value.get() == "monthly":
-                expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
-            else:
-                expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
-                expense_widget_amount = expense_widget_amount[:-
-                                                              2] + "." + expense_widget_amount[-2:]
-                expense_widget_amount = float(expense_widget_amount) / 12
-                amount_numbers = len(
-                    self.expense_entry_dict["expense_amount_raw"])
-                self.expense_entry_dict["expense_amount_raw"] = str(
-                    expense_widget_amount)[:amount_numbers].replace(".", "")
-                expense_widget_amount = round(expense_widget_amount, 2)
-                expense_widget_amount = str(
-                    expense_widget_amount).replace(".", "")
+            def create_expense_widget():
+                """Filling the expense entry dict for future use"""
+                self.expense_entry_dict["expense_name"] = self.expense_name_entry.get(
+                )
+                self.expense_entry_dict["expense_amount_raw"] = self.expense_value_entry.get(
+                )
 
-            self.expense_entry_dict["expense_amount_formatted"] = format_income_entry(
-                expense_widget_amount)
-            self.expense_entry_list.append(self.expense_entry_dict)
+                if self.optionmenu_value.get() == "monthly":
+                    expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
+                else:
+                    expense_widget_amount = self.expense_entry_dict["expense_amount_raw"]
+                    expense_widget_amount = expense_widget_amount[:-
+                                                                  2] + "." + expense_widget_amount[-2:]
+                    expense_widget_amount = float(expense_widget_amount) / 12
+                    amount_numbers = len(
+                        self.expense_entry_dict["expense_amount_raw"])
+                    self.expense_entry_dict["expense_amount_raw"] = str(
+                        expense_widget_amount)[:amount_numbers].replace(".", "")
+                    expense_widget_amount = round(expense_widget_amount, 2)
+                    expense_widget_amount = str(
+                        expense_widget_amount).replace(".", "")
 
-            self.add_expenses(expense_name=self.expense_entry_dict["expense_name"],
-                              expense_value=self.expense_entry_dict["expense_amount_formatted"])
-            self.calculate_total_expenses()
-            self.calculate_combined_total_expenses()
-            self.calculate_member_percent_amount()
-            HouseHold.update_conclusion(HouseHold.household_instance[0])
+                self.expense_entry_dict["expense_amount_formatted"] = format_income_entry(
+                    expense_widget_amount)
+                self.expense_entry_list.append(self.expense_entry_dict)
 
-            self.next_expense_id += 1
+                self.add_expenses(expense_name=self.expense_entry_dict["expense_name"],
+                                  expense_value=self.expense_entry_dict["expense_amount_formatted"])
+                self.calculate_total_expenses()
+                self.calculate_combined_total_expenses()
+                self.calculate_member_percent_amount()
+                HouseHold.update_conclusion(HouseHold.household_instance[0])
 
-            expense_entry.destroy()
+                self.next_expense_id += 1
 
-        self.expense_name_entry_var = ctk.StringVar()
-        self.expense_name_entry = ctk.CTkEntry(master=expense_entry,
-                                               textvariable=self.expense_name_entry_var,
-                                               placeholder_text="EnterExpense",
-                                               font=("Roboto", 10),
-                                               corner_radius=0,
-                                               border_width=0,
-                                               text_color="white",
-                                               width=100,
-                                               fg_color=entry_background)
-        self.expense_name_entry.grid(
-            pady=member_widget_pady, padx=member_widget_padx, column=0, row=0)
+                expense_entry.destroy()
+
+            self.expense_name_entry_var = ctk.StringVar()
+            self.expense_name_entry = ctk.CTkEntry(master=expense_entry,
+                                                   textvariable=self.expense_name_entry_var,
+                                                   placeholder_text="EnterExpense",
+                                                   font=("Roboto", 10),
+                                                   corner_radius=0,
+                                                   border_width=0,
+                                                   text_color="white",
+                                                   width=100,
+                                                   fg_color=entry_background)
+            self.expense_name_entry.grid(
+                pady=member_widget_pady, padx=member_widget_padx, column=0, row=0)
 
         def on_expense_name_entry_confirm(expense_name_entry):
             activate_entry(self.expense_value_entry)
@@ -647,10 +658,16 @@ class HouseHoldMember():
             total_raw = 0
             total = 0
 
+        for expense in combined_expense_list:
+            database_logic.write_to_database(
+                data=expense, table="expense_entry")
+
         total = format_income_entry(str(total))
         HouseHold.household_instance[0].household_dict["total_expenses"] = total_raw
         HouseHold.household_instance[0].total_shared_expenses_lbl.configure(
             text=total)
+        database_logic.write_to_database(
+            data=HouseHold.household_instance[0].household_dict, table="household")
 
     def member_share_of_total(self, master_frame, column):
         member_share_frame = ctk.CTkFrame(
@@ -679,3 +696,5 @@ class HouseHoldMember():
                     str(member_amount).replace(".", ""))
             member.member_share_amount.configure(text=str(member_amount))
             member.member_dict["member_share_total"] = member_amount
+            database_logic.write_to_database(
+                data=member.member_dict, table="household_member")
