@@ -403,15 +403,11 @@ class HouseHoldMember():
             master=master_frame, corner_radius=0, fg_color=background)
         self.add_expense_widget_container.grid(columnspan=1, row=1)
 
-    def add_expenses(self, expense_name, expense_value):
+    def add_expenses(self, expense_name, expense_value, expense_ID, unique_identifier):
         """This is the actual widget that is beeing created on the GUI"""
 
-        expense_ID = self.next_expense_id
-        unique_identifier = ""
-
-        for entry in self.expense_entry_list:
-            if entry["ID"] == expense_ID:
-                unique_identifier = entry["unique_identifier"]
+        expense_ID = expense_ID
+        unique_identifier = unique_identifier
 
         expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
                                            fg_color=entry_background,
@@ -423,7 +419,7 @@ class HouseHoldMember():
                                  padx=member_widget_padx)
 
         self.expense_widget_list.append((expense_ID, expense_field_frame))
-        print(self.expense_widget_list)
+        # print(self.expense_widget_list)
 
         def remove_expense_btn(widget_ID=expense_ID):
             for id, frame in self.expense_widget_list:
@@ -537,7 +533,9 @@ class HouseHoldMember():
                 self.expense_entry_list.append(self.expense_entry_dict)
 
                 self.add_expenses(expense_name=self.expense_entry_dict["expense_name"],
-                                  expense_value=self.expense_entry_dict["expense_amount_formatted"])
+                                  expense_value=self.expense_entry_dict["expense_amount_formatted"],
+                                  expense_ID=self.expense_entry_dict["ID"],
+                                  unique_identifier=self.expense_entry_dict["unique_identifier"])
                 self.calculate_total_expenses()
                 self.calculate_combined_total_expenses()
                 self.calculate_member_percent_amount()
@@ -712,7 +710,7 @@ def fill_from_database():
                       "household_net_income",
                       "total_expenses"])  # type: ignore
     amount_entries = len(entries)
-    print(f"the household entries are: {entries}")
+    # print(f"the household entries are: {entries}")
     if amount_entries > 0:
         household_db = entries[0]
 
@@ -766,7 +764,7 @@ def fill_from_database():
                 index = 1
                 member_expense_entries = member_2_entries
 
-            member.member_dict["ID"] = member_db[index][0]
+            member.member_dict["household_member_ID"] = member_db[index][0]
 
             member.member_dict["household_member_name"] = member_db[index][1]
             member.memb_name_entry.configure(state="normal")
@@ -787,3 +785,29 @@ def fill_from_database():
             member.member_dict["member_percent_raw"] = member_db[index][6]
 
             member.member_dict["member_total_expenses"] = member_db[index][7]
+
+            """Adding the expenses to the members"""
+            # print(member_expense_entries)
+            member.expense_entry_list = []
+
+            for entry in member_expense_entries:
+                expense = {"ID": entry[0],
+                           "expense_name": entry[1],
+                           "expense_amount_raw": entry[2],
+                           "expense_amount_formatted": entry[3],
+                           "household_member_ID": entry[4],
+                           "unique_identifier": entry[5], }
+                member.expense_entry_list.append(expense)
+
+                widget = member.add_expenses(
+                    expense_name=entry[1],
+                    expense_value=entry[3],
+                    expense_ID=entry[0],
+                    unique_identifier=entry[5]
+                )
+
+            activate_entry(member.add_expense_btn)
+            member.calculate_total_expenses()
+            member.calculate_combined_total_expenses()
+            member.calculate_member_percent_amount()
+        HouseHold.update_conclusion(HouseHold.household_instance[0])
