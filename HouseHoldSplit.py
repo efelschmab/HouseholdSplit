@@ -208,6 +208,6 @@ conclusion_frame.grid(row=16, columnspan=3, pady=10)
 household_conclusion_text = household_obj.conclusion(
     master_frame=conclusion_frame)
 
-classes.fill_from_database()
+# classes.fill_from_database()
 
 window.mainloop()

@@ -407,6 +407,11 @@ class HouseHoldMember():
         """This is the actual widget that is beeing created on the GUI"""
 
         expense_ID = self.next_expense_id
+        unique_identifier = ""
+
+        for entry in self.expense_entry_list:
+            if entry["ID"] == expense_ID:
+                unique_identifier = entry["unique_identifier"]
 
         expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
                                            fg_color=entry_background,
@@ -437,7 +442,7 @@ class HouseHoldMember():
             print(f"this is now the expense entry list: {
                   self.expense_entry_list}")
 
-            database_logic.delete_expense(widget_ID)
+            database_logic.delete_expense(unique_identifier)
 
             self.calculate_total_expenses()
             self.calculate_combined_total_expenses()
