@@ -85,16 +85,16 @@ class HouseHold():
 
     def hh_name_entry_widget(self, master_frame):
         text_var = ctk.StringVar()
-        hh_name_entry = ctk.CTkEntry(master=master_frame,
-                                     textvariable=text_var,
-                                     fg_color=entry_background,
-                                     placeholder_text="Enter Household Name",
-                                     font=("Roboto", 18),
-                                     corner_radius=entry_round_corners,
-                                     border_width=0,
-                                     text_color="white",
-                                     width=400)
-        hh_name_entry.pack(padx=10, pady=20)
+        self.hh_name_entry = ctk.CTkEntry(master=master_frame,
+                                          textvariable=text_var,
+                                          fg_color=entry_background,
+                                          placeholder_text="Enter Household Name",
+                                          font=("Roboto", 18),
+                                          corner_radius=entry_round_corners,
+                                          border_width=0,
+                                          text_color="white",
+                                          width=400)
+        self.hh_name_entry.pack(padx=10, pady=20)
 
         def limit_characters(entry, limit):
             value = entry.get()
@@ -117,7 +117,7 @@ class HouseHold():
         def create_lambda(hh_name_entry):
             return lambda event: on_name_entry_confirm(hh_name_entry)
 
-        hh_name_entry.bind("<Return>", create_lambda(hh_name_entry))
+        self.hh_name_entry.bind("<Return>", create_lambda(self.hh_name_entry))
 
     def divider_line_horizontal(self, master_frame, row):
         divider_line_frame_horizontal = ctk.CTkFrame(master=master_frame,
@@ -703,3 +703,87 @@ class HouseHoldMember():
             member.member_dict["member_share_total"] = member_amount
             database_logic.write_to_database(
                 data=member.member_dict, table="household_member")
+
+
+def fill_from_database():
+    """If there already is a filled database, the entries are fetched and inserted in the GUI"""
+    entries = database_logic.fetch_from_database(
+        "household", ["household_name",
+                      "household_net_income",
+                      "total_expenses"])  # type: ignore
+    amount_entries = len(entries)
+    print(f"the household entries are: {entries}")
+    if amount_entries > 0:
+        household_db = entries[0]
+
+        member_db = database_logic.fetch_from_database("household_member", ["household_member_ID",
+                                                                            "household_member_name",
+                                                                            "member_net_income",
+                                                                            "member_net_raw",
+                                                                            "member_percent_share",
+                                                                            "member_share_total",
+                                                                            "member_percent_raw",
+                                                                            "member_total_expenses"])  # type: ignore
+
+        expense_entries_db = database_logic.fetch_from_database("expense_entry", [
+                                                                "ID",
+                                                                "expense_name",
+                                                                "expense_amount_raw",
+                                                                "expense_amount_formatted",
+                                                                "household_member_ID",
+                                                                "unique_identifier"])  # type: ignore
+
+        member_1_entries = []
+        member_2_entries = []
+
+        for entry in expense_entries_db:
+            if entry[4] == 1:
+                member_1_entries.append(entry)
+            else:
+                member_2_entries.append(entry)
+
+        # print(f"The entries for member1 are {member_1_entries}")
+        # print(f"The entries for member1 are {member_2_entries}")
+
+        """Filling the household object"""
+
+        household = HouseHold.household_instance[0]
+        household.household_dict["total_expenses"] = household_db[2]
+
+        household.household_dict["household_name"] = household_db[0]
+        household.hh_name_entry.insert(0, household_db[0])
+
+        household.household_dict["household_net_income"] = household_db[1]
+        household.household_net_number.configure(text=household_db[1])
+
+        """Filling the household member objects"""
+
+        for member in HouseHoldMember.member_instances:
+            if member.member_dict["household_member_ID"] == 1:
+                index = 0
+                member_expense_entries = member_1_entries
+            else:
+                index = 1
+                member_expense_entries = member_2_entries
+
+            member.member_dict["ID"] = member_db[index][0]
+
+            member.member_dict["household_member_name"] = member_db[index][1]
+            member.memb_name_entry.configure(state="normal")
+            member.memb_name_entry.insert(0, member_db[index][1])
+
+            member.member_dict["member_net_income"] = member_db[index][2]
+            member.mtly_net_entry.configure(state="normal")
+            member.mtly_net_entry.insert(0, member_db[index][2])
+
+            member.member_dict["member_net_raw"] = member_db[index][3]
+
+            member.member_dict["member_percent_share"] = member_db[index][4]
+            member.percent_of_net_widget.configure(text=member_db[index][4])
+            member.member_share_percent .configure(text=member_db[index][4])
+
+            member.member_dict["member_share_total"] = member_db[index][5]
+
+            member.member_dict["member_percent_raw"] = member_db[index][6]
+
+            member.member_dict["member_total_expenses"] = member_db[index][7]
