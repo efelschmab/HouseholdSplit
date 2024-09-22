@@ -8,7 +8,7 @@ cursor = conn.cursor()
 cursor.execute('''CREATE TABLE IF NOT EXISTS household (
     household_ID INTEGER PRIMARY KEY,
     household_name TEXT,
-    net_income TEXT,
+    household_net_income TEXT,
     total_expenses INTEGER
 )''')
 
@@ -61,7 +61,7 @@ def write_to_database(data, table, condition=None, replace_existing=True):
 
         cursor.execute(sql, tuple(data.values()))
         conn.commit()
-        print("Entry inserted or updated successfully.")
+        # print("Entry inserted or updated successfully.")
     except sqlite3.Error as e:
         print(f"Error inserting or updating data: {e}")
 
