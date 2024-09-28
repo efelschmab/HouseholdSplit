@@ -1,9 +1,4 @@
-# To-Do:
-# limit number of expense entries
-# somehow restrict number input entry fields
-# make sure the total expenses get corrected if all expenses get removed
-# better placement for floating expense adding window
-
+from turtle import back
 import customtkinter as ctk
 import re
 from PIL import Image, ImageTk
@@ -33,10 +28,11 @@ def limit_characters(entry, limit):
     if len(value) > limit:
         entry.set(value[:limit])
 
-# def validate_numeric_input(entry_var):
-#     value = entry_var.get()
-#     if not value.isdigit():
-#         entry_var.set(''.join(filter(str.isdigit, value)))
+
+def validate_numeric_input(entry_var):
+    value = entry_var.get()
+    if not value.isdigit():
+        entry_var.set(''.join(filter(str.isdigit, value)))
 
 
 def trace_add(string_var, char_limit):
@@ -93,6 +89,7 @@ class HouseHold():
                                           corner_radius=entry_round_corners,
                                           border_width=0,
                                           text_color="white",
+                                          justify="center",
                                           width=400)
         self.hh_name_entry.pack(padx=10, pady=20)
 
@@ -169,14 +166,19 @@ class HouseHold():
     def update_conclusion(self):
         if self.household_instance[0].household_dict["total_expenses"] > 0:
             member_1_name = HouseHoldMember.member_instances[0].member_dict["household_member_name"]
+            member_1_net_income = HouseHoldMember.member_instances[0].member_dict["member_net_raw"]
             member_1_share = HouseHoldMember.member_instances[0].member_dict["member_share_total"]
             member_1_share = str(member_1_share).replace(
                 ".", "").replace(",", "")
 
             member_2_name = HouseHoldMember.member_instances[1].member_dict["household_member_name"]
+            member_2_net_income = HouseHoldMember.member_instances[1].member_dict["member_net_raw"]
             member_2_share = HouseHoldMember.member_instances[1].member_dict["member_share_total"]
             member_2_share = str(member_2_share).replace(
                 ".", "").replace(",", "")
+
+            household_net_unformatted = int(str(
+                self.household_instance[0].household_dict["household_net_income"]).replace(".", "").replace(",", ""))
 
             member_1_total_expenses = HouseHoldMember.member_instances[
                 0].member_dict["member_total_expenses"]
@@ -195,18 +197,28 @@ class HouseHold():
             member_2_split_format = format_income_entry(
                 str(member_2_split_calc))
 
-            if member_1_share == 0:
+            if member_1_net_income == 0:
                 label_string = f"{member_1_name} has no income, {member_2_name} has to pay the expenses of {
                     self.household_instance[0].household_dict["total_expenses"]}"
-            elif member_2_share == 0:
+
+            elif member_2_net_income == 0:
                 label_string = f"{member_2_name} has no income, {member_1_name} has to pay the expenses of {
                     self.household_instance[0].household_dict["total_expenses"]}"
-            elif member_1_total_expenses > member_2_total_expenses:
+
+            elif self.household_instance[0].household_dict["total_expenses"] > household_net_unformatted:
+                label_string = "The expenses are higher than the income. That's problematic!"
+
+            elif member_1_split_calc < member_2_split_calc:
                 label_string = f"{member_2_name} needs to pay {
                     member_1_name} {member_1_split_format} per month"
-            elif member_2_total_expenses > member_1_total_expenses:
+
+            elif member_2_split_calc < member_1_split_calc:
                 label_string = f"{member_1_name} needs to pay {
                     member_2_name} {member_2_split_format} per month"
+
+            elif member_2_split_calc == member_1_split_calc:
+                label_string = f"Everybody pays their fair share"
+
             else:
                 label_string = "Share and expenses are perfectly equal, crazy!"
 
@@ -263,6 +275,7 @@ class HouseHoldMember():
                                             corner_radius=entry_round_corners,
                                             border_width=0,
                                             text_color="white",
+                                            justify="center",
                                             width=member_widget_width,
                                             state="disabled"
                                             )
@@ -299,6 +312,7 @@ class HouseHoldMember():
                                            corner_radius=entry_round_corners,
                                            border_width=0,
                                            text_color=green,
+                                           justify="center",
                                            width=member_widget_width,
                                            state="disabled"
                                            )
@@ -309,6 +323,7 @@ class HouseHoldMember():
         trace_add(mtly_net_var, income_character_limit)
 
         def on_income_entry_confirm(mtly_net_entry):
+            validate_numeric_input(mtly_net_var)
             self.member_dict["member_net_raw"] = mtly_net_entry.get()
             self.member_dict["member_net_raw"] = self.member_dict["member_net_raw"].replace(
                 ".", "").replace(",", "")
@@ -388,13 +403,21 @@ class HouseHoldMember():
             master=master_frame, corner_radius=0, fg_color=background)
         expenses_container.grid(columnspan=3)
 
+        plus_image_path = "./plus.png"
+        plus_image = Image.open(plus_image_path)
+        plus_scaled_image = plus_image.resize((20, 20))
+        plus_icon = ImageTk.PhotoImage(plus_scaled_image)
+
         self.add_expense_btn = ctk.CTkButton(master=expenses_container,
-                                             height=25,
-                                             width=25,
-                                             corner_radius=100,
+                                             height=0,
+                                             width=0,
+                                             corner_radius=0,
                                              border_width=0,
-                                             text="+",
+                                             text=" ",
+                                             image=plus_icon,
                                              state="disabled",
+                                             fg_color=background,
+                                             hover_color=background,
                                              command=self.floating_expense_entry)
         self.add_expense_btn.grid(sticky="n", column=1, row=0)
 
@@ -410,16 +433,13 @@ class HouseHoldMember():
         unique_identifier = unique_identifier
 
         expense_field_frame = ctk.CTkFrame(master=self.add_expense_widget_container,
-                                           fg_color=entry_background,
+                                           fg_color=background,
                                            width=200,
                                            corner_radius=entry_round_corners)
         expense_field_frame.grid(columnspan=3,
-                                 row=self.expense_row,
-                                 pady=member_widget_pady,
-                                 padx=member_widget_padx)
+                                 row=self.expense_row)
 
         self.expense_widget_list.append((expense_ID, expense_field_frame))
-        # print(self.expense_widget_list)
 
         def remove_expense_btn(widget_ID=expense_ID):
             for id, frame in self.expense_widget_list:
@@ -445,31 +465,37 @@ class HouseHoldMember():
             self.calculate_member_percent_amount()
             HouseHold.update_conclusion(HouseHold.household_instance[0])
 
+        cross_image_path = "./cross.png"
+        cross_image = Image.open(cross_image_path)
+        cross_scaled_image = cross_image.resize((20, 20))
+        cross_icon = ImageTk.PhotoImage(cross_scaled_image)
+
         remove_expense = ctk.CTkButton(master=expense_field_frame,
                                        corner_radius=100,
-                                       width=20,
-                                       height=20,
+                                       fg_color=background,
+                                       hover_color=background,
+                                       image=cross_icon,
+                                       width=0,
+                                       height=0,
                                        command=lambda: remove_expense_btn(
                                            expense_ID),
-                                       text="X")
-        remove_expense.grid(pady=member_widget_pady,
-                            padx=member_widget_padx,
-                            column=0,
+                                       text=" ")
+        remove_expense.grid(column=0,
                             row=0,
                             sticky="nw")
 
         name_and_amount_frame = ctk.CTkFrame(master=expense_field_frame,
                                              width=150,
                                              height=20,
-                                             fg_color=entry_background,
+                                             fg_color=background,
                                              corner_radius=entry_round_corners)
         name_and_amount_frame.grid(column=1, row=0)
 
         self.expense_name_field = ctk.CTkLabel(master=name_and_amount_frame,
                                                width=100,
                                                height=20,
-                                               fg_color=entry_background,
-                                               corner_radius=entry_round_corners,
+                                               fg_color=background,
+                                               corner_radius=0,
                                                text=f"{expense_name}",
                                                compound="left",
                                                anchor="w")
@@ -479,19 +505,22 @@ class HouseHoldMember():
 
         expense_amount_field = ctk.CTkLabel(master=name_and_amount_frame,
                                             width=60,
-                                            fg_color=entry_background,
-                                            corner_radius=entry_round_corners,
-                                            text=expense_value)
+                                            fg_color=background,
+                                            corner_radius=0,
+                                            text=expense_value,
+                                            compound="right",
+                                            anchor="e")
         expense_amount_field.grid(column=1,
-                                  row=0)
+                                  row=0,
+                                  sticky="e")
 
         self.expense_row += 1
 
     def floating_expense_entry(self):
-
         if len(self.expense_entry_list) <= 7:
             expense_entry = ctk.CTkToplevel()
-            expense_entry.geometry("310x40+200+200")
+            x, y = expense_entry.winfo_pointerxy()
+            expense_entry.geometry(f"315x40+{x}+{y}")
             expense_entry.overrideredirect(True)
             expense_entry.attributes("-topmost", True)
             expense_entry.configure(fg_color=background)
@@ -545,8 +574,12 @@ class HouseHoldMember():
 
                 expense_entry.destroy()
 
+            expense_container = ctk.CTkFrame(
+                master=expense_entry, fg_color=background, border_color="white", border_width=1)
+            expense_container.grid(column=0, row=0)
+
             self.expense_name_entry_var = ctk.StringVar()
-            self.expense_name_entry = ctk.CTkEntry(master=expense_entry,
+            self.expense_name_entry = ctk.CTkEntry(master=expense_container,
                                                    textvariable=self.expense_name_entry_var,
                                                    placeholder_text="EnterExpense",
                                                    font=("Roboto", 10),
@@ -569,7 +602,7 @@ class HouseHoldMember():
         trace_add(self.expense_name_entry_var, expense_name_character_limit)
 
         self.expense_value_entry_var = ctk.StringVar()
-        self.expense_value_entry = ctk.CTkEntry(master=expense_entry,
+        self.expense_value_entry = ctk.CTkEntry(master=expense_container,
                                                 textvariable=self.expense_value_entry_var,
                                                 placeholder_text="0,00",
                                                 font=("Roboto", 10),
@@ -583,6 +616,7 @@ class HouseHoldMember():
             pady=member_widget_pady, padx=member_widget_padx, column=1, row=0)
 
         def on_expense_value_entry_confirm(expense_value_entry):
+            validate_numeric_input(self.expense_value_entry_var)
             activate_entry(self.optionmenu)
 
         create_lambda(on_expense_value_entry_confirm, self.expense_value_entry)
@@ -597,7 +631,7 @@ class HouseHoldMember():
             activate_entry(self.confirm_btn)
 
         self.optionmenu_value = ctk.StringVar()
-        self.optionmenu = ctk.CTkOptionMenu(master=expense_entry,
+        self.optionmenu = ctk.CTkOptionMenu(master=expense_container,
                                             values=["monthly", "yearly"],
                                             font=("Roboto", 10),
                                             width=60,
@@ -611,7 +645,7 @@ class HouseHoldMember():
         scaled_image = image.resize((20, 20))
         check_icon = ImageTk.PhotoImage(scaled_image)
 
-        self.confirm_btn = ctk.CTkButton(master=expense_entry,
+        self.confirm_btn = ctk.CTkButton(master=expense_container,
                                          width=10,
                                          height=10,
                                          corner_radius=50,
@@ -764,27 +798,33 @@ def fill_from_database():
                 index = 1
                 member_expense_entries = member_2_entries
 
-            member.member_dict["household_member_ID"] = member_db[index][0]
+            member_dict_keys = [
+                "household_member_ID",
+                "household_member_name",
+                "member_net_income",
+                "member_net_raw",
+                "member_percent_share",
+                "member_share_total",
+                "member_percent_raw",
+                "member_total_expenses",
+            ]
 
-            member.member_dict["household_member_name"] = member_db[index][1]
+            member.member_dict = {
+                key: value for key, value in zip(member_dict_keys, member_db[index])
+            }
+
             member.memb_name_entry.configure(state="normal")
-            member.memb_name_entry.insert(0, member_db[index][1])
+            member.memb_name_entry.insert(
+                0, member.member_dict["household_member_name"])
 
-            member.member_dict["member_net_income"] = member_db[index][2]
             member.mtly_net_entry.configure(state="normal")
-            member.mtly_net_entry.insert(0, member_db[index][2])
+            member.mtly_net_entry.insert(
+                0, member.member_dict["member_net_income"])
 
-            member.member_dict["member_net_raw"] = member_db[index][3]
-
-            member.member_dict["member_percent_share"] = member_db[index][4]
-            member.percent_of_net_widget.configure(text=member_db[index][4])
-            member.member_share_percent .configure(text=member_db[index][4])
-
-            member.member_dict["member_share_total"] = member_db[index][5]
-
-            member.member_dict["member_percent_raw"] = member_db[index][6]
-
-            member.member_dict["member_total_expenses"] = member_db[index][7]
+            member.percent_of_net_widget.configure(
+                text=member.member_dict["member_percent_share"])
+            member.member_share_percent.configure(
+                text=member.member_dict["member_percent_share"])
 
             """Adding the expenses to the members"""
             # print(member_expense_entries)

@@ -7,7 +7,6 @@ window.geometry("500x900")
 window.title("HouseHold Split")
 window.resizable(width=False, height=False)
 
-
 """Household name"""
 house_hold_name_frame = ctk.CTkFrame(master=window, width=40,
                                      fg_color=classes.background,
