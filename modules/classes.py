@@ -3,6 +3,8 @@ import customtkinter as ctk
 import re
 from PIL import Image, ImageTk
 import uuid
+import os
+import sys
 
 from . import database_logic
 
@@ -16,6 +18,15 @@ member_widget_width = 180
 member_widget_padx = 5
 member_widget_pady = 5
 entry_round_corners = 8
+
+
+def resource_path(relative_path):
+    """Function setting the resource path"""
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 
 def activate_entry(widget):
@@ -403,10 +414,9 @@ class HouseHoldMember():
             master=master_frame, corner_radius=0, fg_color=background)
         expenses_container.grid(columnspan=3)
 
-        plus_image_path = "./plus.png"
-        plus_image = Image.open(plus_image_path)
-        plus_scaled_image = plus_image.resize((20, 20))
-        plus_icon = ImageTk.PhotoImage(plus_scaled_image)
+        plus_icon_path = resource_path("plus.png")
+        import_plus_icon = Image.open(plus_icon_path)
+        plus_icon = ctk.CTkImage(import_plus_icon)
 
         self.add_expense_btn = ctk.CTkButton(master=expenses_container,
                                              height=0,
@@ -465,10 +475,9 @@ class HouseHoldMember():
             self.calculate_member_percent_amount()
             HouseHold.update_conclusion(HouseHold.household_instance[0])
 
-        cross_image_path = "./cross.png"
-        cross_image = Image.open(cross_image_path)
-        cross_scaled_image = cross_image.resize((20, 20))
-        cross_icon = ImageTk.PhotoImage(cross_scaled_image)
+        cross_icon_path = resource_path("cross.png")
+        import_cross_icon = Image.open(cross_icon_path)
+        cross_icon = ctk.CTkImage(import_cross_icon)
 
         remove_expense = ctk.CTkButton(master=expense_field_frame,
                                        corner_radius=100,
@@ -640,10 +649,9 @@ class HouseHoldMember():
         self.optionmenu.grid(padx=5, pady=5, row=0, column=2)
         self.optionmenu.set("select cycle")
 
-        image_path = "./check.png"
-        image = Image.open(image_path)
-        scaled_image = image.resize((20, 20))
-        check_icon = ImageTk.PhotoImage(scaled_image)
+        check_icon_path = resource_path("check.png")
+        import_check_icon = Image.open(check_icon_path)
+        check_icon = ctk.CTkImage(import_check_icon)
 
         self.confirm_btn = ctk.CTkButton(master=expense_container,
                                          width=10,
