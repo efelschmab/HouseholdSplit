@@ -22,6 +22,6 @@ To start, simply run the executable and begin entering information at the top. T
 Once all necessary information is provided, the calculated result will appear at the bottom. Additionally, you can view the percentage values used for transparency.<br>
 The database file is created upon startup in the same directory as the .exe. Whenever changes are made (household name, member names/incomes, added or removed expenses), the database is updated. To start completely from scratch, delete the .db file, and all entries will be removed.
 
-<img src="./doc_img/Split_layout_flowchart_flowchart.jpg"><img src="./doc_img/Split_layout_design.png">
+<img src="./doc_img/layout.jpg">
 
 As shown above, this is the initial design and functionality I envisioned for the project. While I believe I got pretty close with tkinter, it's time to explore alternative UI frameworks. Although the current implementation is functional and meets my goals, I would probably approach it differently if starting over. After all the goal was to learn and I learned a lot. :)
